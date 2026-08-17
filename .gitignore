@@ -1,0 +1,6 @@
+# 이 저장소는 public + GitHub Pages 배포용 — 렌더된 사이트(*.html)만 커밋한다.
+# 내부 작업 문서/전략/보안 노트는 절대 공개 저장소에 올리지 않는다.
+docs/
+CLAUDE.md
+.claude/
+.DS_Store

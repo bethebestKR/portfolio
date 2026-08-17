@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuarterBack Raspberry Pi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#0066cc;
+    --canvas:#ffffff;
+    --parchment:#f5f5f7;
+    --ink:#1d1d1f;
+    --ink-muted-80:#333333;
+    --ink-muted-48:#7a7a7a;
+    --hairline:#e0e0e0;
+    --divider-soft:rgba(0,0,0,0.06);
+    --red:#c0392b;
+    --red-bg:rgba(192,57,43,0.08);
+    --green:#1e965a;
+    --green-bg:rgba(30,150,90,0.10);
+    --blue-bg:rgba(0,102,204,0.08);
+    --radius-lg:18px;
+    --radius-pill:9999px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--canvas); color:var(--ink);
+    font-family:-apple-system, system-ui, 'Inter', sans-serif;
+    line-height:1.47; -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+  code{
+    font-family:'JetBrains Mono', monospace; font-size:0.86em;
+    background:var(--parchment); padding:2px 6px; border-radius:5px; color:var(--ink);
+  }
+
+  nav{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0 32px; height:52px;
+    border-bottom:1px solid var(--divider-soft);
+    background:rgba(245,245,247,0.8);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    position:sticky; top:0; z-index:10;
+  }
+  .back-link{ font-size:14px; color:var(--primary); }
+  .back-link:hover{ opacity:0.75; }
+  .nav-code{
+    background:var(--primary); color:#fff; font-size:14px;
+    padding:7px 16px; border-radius:var(--radius-pill);
+  }
+  .nav-code:hover{ opacity:0.9; }
+
+  .wrap{ max-width:1160px; margin:0 auto; padding:0 40px; }
+
+  /* ---- HERO (요약) ---- */
+  .hero{ padding:44px 0 28px; }
+  .hero .role-line{
+    font-size:13px; font-weight:600; color:var(--primary);
+    letter-spacing:0.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .badge{
+    display:inline-block; font-size:12px; font-weight:500; color:var(--ink-muted-48);
+    background:var(--parchment); padding:5px 12px; border-radius:var(--radius-pill);
+    margin-left:10px;
+  }
+  .hero h1{ font-size:clamp(30px,4.4vw,46px); font-weight:600; letter-spacing:-0.5px; line-height:1.12; margin-bottom:8px; }
+  .hero .meta{ font-size:14px; color:var(--ink-muted-48); margin-bottom:20px; }
+  .link-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .btn{ font-size:15px; font-weight:400; padding:10px 20px; border-radius:var(--radius-pill); display:inline-block; }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-primary:hover{ opacity:0.9; }
+  .btn-ghost{ color:var(--primary); border:1px solid var(--primary); }
+  .btn-ghost:hover{ background:rgba(0,102,204,0.06); }
+
+  .divider{ height:1px; background:var(--hairline); margin:0 0 40px; }
+
+  /* ---- 2단 레이아웃: 좌 Overview(요약) / 우 문제 토글(강조) ---- */
+  .work-layout{
+    display:grid; grid-template-columns:340px minmax(0,1fr); gap:56px;
+    align-items:start; margin-bottom:64px;
+  }
+  .overview-pane{ position:sticky; top:76px; }
+  .ov-oneliner{ font-size:16px; line-height:1.62; color:var(--ink-muted-80); margin-bottom:24px; }
+  .ov-label{
+    font-size:11px; font-weight:600; color:var(--ink-muted-48);
+    letter-spacing:0.6px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .ov-block{ margin-bottom:24px; }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:7px; }
+  .chip{
+    font-size:13px; font-weight:500; color:var(--ink);
+    background:var(--parchment); border:1px solid var(--hairline);
+    padding:6px 12px; border-radius:var(--radius-pill);
+  }
+  .chip.accent{ color:var(--primary); background:var(--blue-bg); border-color:transparent; }
+  .ov-did{ list-style:none; display:flex; flex-direction:column; gap:9px; }
+  .ov-did li{ font-size:14px; line-height:1.5; color:var(--ink); padding-left:15px; position:relative; }
+  .ov-did li::before{
+    content:""; position:absolute; left:0; top:8px; width:6px; height:6px; border-radius:2px; background:var(--primary);
+  }
+  .ov-did li strong{ font-weight:600; }
+  .ov-scope{
+    font-size:12.5px; line-height:1.5; color:var(--ink-muted-48); margin-top:10px;
+  }
+  .ov-facts{ display:flex; flex-direction:column; gap:0; border:1px solid var(--hairline); border-radius:14px; overflow:hidden; }
+  .ov-fact{ display:flex; gap:12px; padding:10px 14px; font-size:13px; }
+  .ov-fact:not(:last-child){ border-bottom:1px solid var(--hairline); }
+  .ov-fact .k{ width:52px; flex-shrink:0; color:var(--ink-muted-48); }
+  .ov-fact .v{ color:var(--ink); }
+
+  /* ---- 문제 패널 (강조) ---- */
+  .problems-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:22px; }
+  .problems-head h2{ font-size:31px; font-weight:600; letter-spacing:-0.5px; }
+  .problems-head .count{
+    font-size:15px; font-weight:600; color:var(--ink-muted-48);
+    background:var(--parchment); padding:3px 12px; border-radius:var(--radius-pill);
+  }
+
+  details.problem{
+    border:1px solid var(--hairline); border-radius:18px; margin-bottom:12px;
+    background:var(--canvas); overflow:hidden; transition:border-color .15s ease;
+  }
+  details.problem:hover{ border-color:#c9c9cf; }
+  details.problem[open]{ border-color:#b9b9c0; }
+  details.problem summary{
+    list-style:none; cursor:pointer; padding:22px 24px;
+    display:flex; align-items:flex-start; gap:14px;
+  }
+  details.problem summary::-webkit-details-marker{ display:none; }
+  .sum-main{ flex:1; min-width:0; }
+  .p-tags{ display:flex; gap:6px; margin-bottom:7px; flex-wrap:wrap; }
+  .p-tag{
+    font-size:12px; font-weight:600; letter-spacing:0.3px;
+    color:var(--ink-muted-48); background:var(--parchment);
+    padding:4px 10px; border-radius:var(--radius-pill);
+  }
+  .p-tag.primary{ color:var(--ink-muted-80); background:var(--parchment); }
+  .sum-main h3{ font-size:20px; font-weight:600; letter-spacing:-0.3px; line-height:1.32; color:var(--ink); }
+  .p-teaser{ font-size:15.5px; color:var(--ink-muted-48); margin-top:6px; line-height:1.5; }
+  .p-chevron{
+    flex-shrink:0; width:22px; height:22px; margin-top:2px; position:relative;
+  }
+  .p-chevron::before, .p-chevron::after{
+    content:""; position:absolute; top:10px; width:10px; height:2px;
+    background:var(--ink-muted-48); border-radius:2px; transition:transform .2s ease;
+  }
+  .p-chevron::before{ left:2px; transform:rotate(45deg); }
+  .p-chevron::after{ right:2px; transform:rotate(-45deg); }
+  details.problem[open] .p-chevron::before{ transform:rotate(-45deg); }
+  details.problem[open] .p-chevron::after{ transform:rotate(45deg); }
+  details.problem[open] .p-chevron::before, details.problem[open] .p-chevron::after{ background:var(--ink-muted-80); }
+
+  .p-body{ padding:2px 24px 24px; }
+  .p-part{ padding:18px 0; border-top:1px solid var(--divider-soft); }
+  .p-part:first-child{ border-top:none; padding-top:8px; }
+  .p-label{
+    display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.8px;
+    text-transform:uppercase; color:var(--ink-muted-48); margin-bottom:12px;
+  }
+  .lbl-problem, .lbl-action, .lbl-result{ color:var(--ink-muted-48); }
+  .lbl-analyze{ color:var(--primary); }
+  .p-part.analyze-part{ border-left:2px solid var(--primary); padding-left:16px; }
+  .p-text p{ font-size:17px; line-height:1.68; color:var(--ink-muted-80); margin-bottom:13px; }
+  .p-text p:last-child{ margin-bottom:0; }
+  .p-text p strong{ color:var(--ink); font-weight:600; }
+
+  pre.snippet{
+    font-family:'JetBrains Mono', monospace; font-size:13px; line-height:1.6;
+    background:#1d1d1f; color:#f0f0f2; border-radius:10px; padding:15px 16px;
+    overflow-x:auto; margin:12px 0 4px;
+  }
+
+  .metric-line{ display:flex; gap:24px; flex-wrap:wrap; margin-top:16px; }
+  .metric .v{ font-size:18px; font-weight:600; letter-spacing:-0.374px; display:block; color:var(--ink); }
+  .metric .k{ color:var(--ink-muted-48); font-size:12.5px; }
+
+  .aside{ border-left:3px solid var(--primary); padding:2px 0 2px 14px; margin:14px 0 2px; }
+  .aside p{ font-size:14px; line-height:1.6; color:var(--ink-muted-48); }
+
+  /* ---- 회고 (요약, 전체폭) ---- */
+  .retro-wrap{ margin-bottom:64px; }
+  .retro-wrap > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:16px; }
+  .retro{ background:var(--parchment); border-radius:var(--radius-lg); padding:30px 32px; }
+  .retro > p{ font-size:16.5px; line-height:1.62; color:var(--ink-muted-80); }
+  .retro ul{ list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:14px 32px; margin-top:20px; }
+  .retro li{ font-size:15.5px; line-height:1.58; color:var(--ink-muted-80); padding-left:18px; position:relative; }
+  .retro li::before{
+    content:""; position:absolute; left:0; top:8px; width:6px; height:6px; border-radius:50%; background:var(--primary);
+  }
+  .retro li strong{ color:var(--ink); font-weight:600; }
+  .retro .closing{ margin-top:18px; font-size:15.5px; }
+
+  footer{
+    max-width:1080px; margin:0 auto; padding:30px 32px 72px;
+    border-top:1px solid var(--hairline);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;
+  }
+  footer a{ font-size:15px; color:var(--primary); }
+  footer a:hover{ opacity:0.75; }
+
+  @media (max-width:860px){
+    .work-layout{ grid-template-columns:1fr; gap:36px; }
+    .overview-pane{ position:static; }
+    .retro ul{ grid-template-columns:1fr; }
+  }
+  @media (max-width:640px){
+    nav, .wrap, footer{ padding-left:20px; padding-right:20px; }
+    .hero{ padding:32px 0 24px; }
+    .problems-head h2{ font-size:22px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="back-link" href="../index.html">← 포트폴리오</a>
+  <a class="nav-code" id="navCode" href="#">GitHub</a>
+</nav>
+
+<div class="wrap">
+  <section class="hero" id="heroSection"></section>
+  <div class="divider"></div>
+  <div class="work-layout">
+    <aside class="overview-pane" id="overviewPane"></aside>
+    <main class="problems-pane" id="problemsPane"></main>
+  </div>
+  <section class="retro-wrap" id="retroSection"></section>
+</div>
+
+<footer>
+  <a href="../index.html">← 모든 프로젝트 보기</a>
+  <a id="footerGithub" href="#">자세한 코드는 GitHub에서 →</a>
+</footer>
+
+<script>
+/* ============================================================
+   QuarterBack 라즈베리파이 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
+
+   설계 의도 (면접관이 빠르게 넘기다 멈추게):
+   - 왼쪽 Overview = 요약 (무슨 프로젝트 / 무슨 역할)
+   - 오른쪽 = 맞닥뜨린 문제들을 토글 카드로 크게
+   - 카드를 열면  문제 정의 → 고민·접근 → 실행 → 결과  순
+   ============================================================ */
+const CONTENT = {
+  roleLine: "Embedded · Hardware ↔ Backend",
+  badge: "캡스톤 · 종료",
+  title: "QuarterBack — 아두이노 충전 신호를 백엔드로 잇는 라즈베리파이 게이트웨이",
+  meta: "캡스톤 · 아두이노+라즈베리파이 하드웨어 체인 담당 · OCPP 2.0.1 클라이언트",
+  githubUrl: "https://github.com/Capstone-QuarterBack/rasberyPi",
+  links: [
+    { label: "GitHub 코드 보기 →", href: "https://github.com/Capstone-QuarterBack/rasberyPi", primary: true },
+    { label: "핵심 코드 (gui_client.py)", href: "https://github.com/Capstone-QuarterBack/rasberyPi/blob/main/gui_client.py", primary: false }
+  ],
+
+  /* ---- 왼쪽: Overview (요약) ---- */
+  overview: {
+    oneliner: "충전기에 연결된 아두이노가 흘리는 실제 전기 신호(전압·전류)를 라즈베리파이에서 읽어, OCPP 2.0.1 규격으로 팀 백엔드에 전달하는 충전기측 클라이언트. 아두이노+라즈베리파이 하드웨어 체인을 맡았습니다.",
+    did: [
+      "아두이노 <strong>시리얼(UART)</strong> 스트림을 커스텀 프레이밍으로 파싱해 <strong>전압×전류=전력</strong> 계산",
+      "측정값을 <strong>OCPP 2.0.1</strong> 트랜잭션(Started/Updated/Ended)으로 변환해 팀 백엔드에 전송",
+      "<strong>WebSocket</strong> 연결 확립 + <strong>Heartbeat(60초)</strong>로 유지·재연결",
+      "끊겨도 유실 없게 <strong>큐 순차 전송 + 응답 대기 + 재시도</strong>",
+      "라파→아두이노 <strong>역방향 제어</strong>로 미인증 포트 전력 차단"
+    ],
+    scope: "OCPP를 수신하는 백엔드(Java)와 프론트(TS)는 팀원 담당. 이 문서는 제가 맡은 하드웨어→백엔드 신호 전달만 다룹니다.",
+    facts: [
+      { k: "팀", v: "캡스톤 · 하드웨어 체인 담당" },
+      { k: "대상", v: "팀 백엔드에 WebSocket OCPP 전송" },
+      { k: "기기", v: "라즈베리파이 실기기 직접 실행" },
+      { k: "상태", v: "캡스톤 종료 · 코드로 확인" }
+    ],
+    stack: ["Python 3", "asyncio", "pyserial", "websockets", "OCPP 2.0.1", "Raspberry Pi", "Arduino", "tkinter"]
+  },
+
+  /* ---- 오른쪽: Trouble Shooting ----
+     순서 원칙: 판단이 많이 들어간 것 먼저(시리얼 파싱 → OCPP 상태머신 → 큐 신뢰전송 → 역방향 제어 → 연결확립). 각 카드는 PAAR.
+     ANALYZE(분석)에 기각한 대안 + 트레이드오프를 명시. Result는 관측된 사실로.
+     ⚠️ 수치 측정 안 함 — 보고서에 있던 값은 미보유. 지어내지 않고 코드에서 검증되는 설정값만 metric으로 사용. */
+  problems: [
+    {
+      tags: ["신뢰성", "메시지 큐"],
+      title: "연결이 불안정해서 메시지가 유실되면 결제·기록이 틀어졌다",
+      teaser: "그냥 send만 하면 못 받은 이벤트가 조용히 사라진다",
+      problem: [
+        "소켓이 끊기거나 응답이 안 오는데 그냥 <code>send</code>만 하면, 백엔드가 못 받은 트랜잭션 이벤트가 조용히 사라집니다. <strong>충전 기록에서는 이게 곧 데이터 손실</strong>입니다."
+      ],
+      analyze: [
+        "단순 send 대신 <strong>큐 기반 신뢰 전송</strong>을 넣었습니다. 메시지를 큐에 넣고 하나씩 순차 전송해 순서를 보장하고, 보낸 뒤엔 서버 응답 이벤트를 <strong>최대 10초 기다려 '수신완료'를 확인</strong>했습니다. 실패하면 재시도(최대 3회, 사이에 지연)했습니다.",
+        "메시지를 <strong>병렬로 쏘는 방식은 기각</strong>했습니다. TransactionEvent는 Started→Updated→Ended 순서가 뒤집히면 서버 쪽 세션 해석이 깨져, 처리량보다 순서 보장이 먼저라고 봤기 때문입니다. 그래서 단일 큐로 갔습니다."
+      ],
+      action: [
+        "<code>process_message_queue</code>가 큐에서 하나씩 꺼내 <code>_send_message_and_wait_response</code>로 보내고 <code>response_event.wait()</code>를 10초 timeout으로 기다립니다. 실패 시 <code>retry_count</code>를 올려 <code>max_retries</code>(3)까지 재시도하고, 초과하면 포기 로그를 남깁니다."
+      ],
+      snippet: "await self.message_queue.put(message)          # 순차 큐\n...\nawait asyncio.wait_for(self.response_event.wait(), timeout=10.0)  # 응답 대기\nif not success and message[\"retry_count\"] <= self.max_retries:    # 재시도(최대 3)\n    await asyncio.sleep(self.retry_delay)\n    await self.message_queue.put(message)",
+      result: [
+        "응답이 확인된 메시지만 성공으로 처리하고, 실패분은 재시도 큐로 다시 들어갔다가 3회를 넘기면 포기 로그를 남깁니다. 순차 큐라 Started→Updated→Ended 순서도 뒤집히지 않습니다. (유실률 같은 수치는 측정하지 않았습니다.)"
+      ],
+      metrics: [
+        { v: "10초", k: "응답 대기 timeout (설정값)" },
+        { v: "최대 3회", k: "실패 시 재시도 (설정값)" }
+      ],
+      aside: "순차·응답대기 구조라 처리량은 낮습니다. 초 단위 충전 보고엔 충분하지만 대량 전송엔 부적합한 트레이드오프입니다."
+    },
+    {
+      tags: ["양방향 제어", "안전"],
+      title: "케이블은 꽂혔는데 인증이 안 된 포트에 전기가 흐르면 안 됐다",
+      teaser: "라즈베리파이가 감지만 해선 부족하고, 하드웨어를 막아야 했다",
+      problem: [
+        "전압이 감지되면 케이블 연결은 확인되지만, 아직 인증/충전 시작 전인 포트에 전력이 흐르면 안전 문제입니다. 라즈베리파이가 <strong>감지만 해서는 부족하고 하드웨어를 막아야</strong> 했습니다."
+      ],
+      analyze: [
+        "라즈베리파이가 데이터를 받기만 하는 게 아니라 아두이노로 <strong>역방향 제어 명령</strong>을 보내게 했습니다. 케이블은 붙었는데 충전 활성 상태가 아니면 그 포트에 전력 차단 명령을 내리고, 충전 시작 시 공급 명령을 냅니다.",
+        "\"기본 공급 후 문제 시 차단\"이 아니라 <strong>\"기본 차단, 인증돼야 공급\"</strong>으로 방향을 잡았습니다. 전기가 흐르는 대상이라 잘못된 쪽이 켜지는 것보다 필요한 쪽이 잠깐 안 켜지는 게 안전하다고 봤습니다."
+      ],
+      action: [
+        "<code>send_power_control_command(port, enable)</code>가 아두이노로 <code>P,포트,0/1</code> 명령을 시리얼로 씁니다. <code>get_load3_data</code>에서 케이블 연결이 감지됐지만 미인증인 포트는 자동으로 차단 명령을 보냅니다."
+      ],
+      snippet: "command = f\"P,{port_number},{1 if enable else 0}\\n\"  # 포트별 전력 on/off\nself.comm.serial_conn.write(command.encode('ascii'))\n\n# 케이블 감지 O + 충전 활성 X → 자동 차단\nif voltage > 50.0 and not self.charging_active[i]:\n    self.send_power_control_command(i+1, False)",
+      result: [
+        "전압 50V가 감지돼도 충전 활성 상태가 아닌 포트에는 <code>P,포트,0</code> 차단 명령이 나가고, 충전 시작 시 <code>P,포트,1</code> 공급 명령이 나가는 것을 시리얼 출력으로 확인했습니다."
+      ],
+      aside: "안전 판단을 소프트웨어(라파)에서 하므로 라파가 죽으면 제어도 멈춥니다. 하드웨어 인터록까지 갔으면 더 견고했을 부분입니다."
+    },
+    {
+      tags: ["연결", "WebSocket"],
+      title: "라즈베리파이를 처음 받았을 때, 코드를 어떻게 올려 백엔드에 붙이는지부터 막혔다",
+      teaser: "충전 로직 이전에 연결 자체가 첫 관문이었다",
+      problem: [
+        "하드웨어(라즈베리파이+아두이노)를 받았지만, 여기에 무엇을 어떻게 코딩해 넣어 백엔드와 통신시키는지부터 몰랐습니다. 충전 로직을 짜기 전에 <strong>연결을 세우는 것 자체가 첫 관문</strong>이었습니다."
+      ],
+      analyze: [
+        "한 번에 다 만들지 않고 Python으로 <strong>최소 연결부터 검증</strong>했습니다. 소켓(WebSocket) 기반으로 백엔드에 붙는지부터 확인하고, 붙은 다음에 데이터 송수신을 얹는 순서로 갔습니다.",
+        "연결 유지 방법으로 <strong>TCP keepalive로 소켓 생존만 확인하는 것도 있었지만</strong>, 정작 필요한 건 소켓이 아니라 OCPP 세션 복구(끊기면 BootNotification부터 다시)라서 <strong>앱 레벨 Heartbeat(60초)</strong>를 택했습니다. 끊기면 재연결한 뒤 BootNotification을 다시 보내 세션을 복구합니다."
+      ],
+      action: [
+        "<code>connect_websocket</code>으로 연결하고 <code>send_heartbeat</code>를 60초 주기로 보냈습니다. 메인 루프에서 <code>websocket</code>이 끊겨 있으면 재연결 후 부팅 알림·상태 알림을 다시 전송하게 했습니다.",
+        "실제로 연결 콜백의 인자 개수가 안 맞는 버그를 로그로 잡고서야 붙었습니다 — 아래는 그때의 실제 로그입니다."
+      ],
+      snippet: "# app_20250510_115101.log (실제 로그)\nERROR - WebSocketApp.on_error() takes 2 positional arguments but 3 were given\nERROR - WebSocketApp.on_error() takes 2 positional arguments but 3 were given\nINFO  - Websocket connected          ← 콜백 시그니처 수정 후 연결 성공",
+      result: [
+        "반복되던 <code>on_error</code> 인자 오류가 사라지고 <code>Websocket connected</code> 이후 연결이 붙었습니다. 세션이 끊겨도 재연결 후 BootNotification 재전송으로 복구됩니다. (연결 지연·품질 같은 성능 수치는 개발 단계라 측정하지 않았습니다.)"
+      ],
+      metrics: [
+        { v: "60초", k: "Heartbeat 주기 (설정값)" },
+        { v: "자동 재연결", k: "끊기면 BootNotification 재전송" }
+      ],
+      aside: "애플리케이션 레벨 heartbeat라 연결이 살아있음은 알아도 지연·품질까지는 못 잽니다."
+    },
+    {
+      tags: ["시리얼", "신호 파싱"],
+      title: "아두이노가 시리얼로 흘려보내는 전기 신호를 라즈베리파이에서 파싱했다",
+      teaser: "프레임 경계도 없고 노이즈 문자도 섞인 생 스트림",
+      problem: [
+        "충전기에 연결된 아두이노가 2400 baud로 전압·전류 값을 끊임없이 흘리는데, 스트림에는 <strong>프레임 경계도 없고 노이즈 문자도 섞입니다.</strong> 어디부터 어디까지가 한 묶음인지부터 잡아야 했습니다."
+      ],
+      analyze: [
+        "<code>readline()</code>이나 검증된 파싱 라이브러리를 쓰는 방법도 있었지만, 아두이노 펌웨어가 내보내는 프레임이 <strong>개행 구분 같은 표준 형식이 아니라</strong> 그대로는 맞지 않았습니다. 그래서 프레임 경계를 직접 잡는 수동 파서로 갔습니다.",
+        "커스텀 프레이밍을 정했습니다 — <code>!</code>가 오면 프레임 시작, <code>@</code>가 오면 끝. 그 사이 문자는 <strong>숫자·소수점·공백만 화이트리스트로 받고</strong> 나머지는 버렸습니다. 매 읽기 전 <code>reset_input_buffer()</code>로 버퍼를 비워 <strong>항상 최신값만</strong> 읽고, 값이 들어오면 전압×전류로 전력(W)을 계산해 100W 미만은 0으로 눌렀습니다."
+      ],
+      action: [
+        "<code>get_load3_data</code>에서 <code>!</code>/<code>@</code> 경계를 찾고, 사이 문자를 화이트리스트로 파싱해 값 배열을 채운 뒤 <code>measure_load_sensor</code>에서 V×I로 전력을 냈습니다. 전압이 50V 이상이면 케이블이 꽂힌 것으로 감지했습니다."
+      ],
+      snippet: "# 시리얼 프레이밍: '!' 시작 ~ '@' 끝, 그 사이 숫자/소수점/공백만 수용\nif char == '!':   break          # 프레임 시작 문자 탐색\n...\nif   char == '@':          break # 프레임 끝\nelif char == '!':          data = \"\"   # 재동기화\nelif char in \"0123456789. \": data += char  # 노이즈 필터\n\nload_w = int(voltage * current)  # 전압 × 전류 = 전력(W)\nif load_w < 100: load_w = 0      # 미세 노이즈 컷",
+      result: [
+        "전압·전류가 들어오면 V×I 전력이 라파 로그에 실시간으로 찍히고, 100W 미만은 0으로 눌려 대기 상태의 노이즈가 걸러졌습니다. (절대 전력량 수치는 캡스톤 보고서에만 있었고 현재는 보유하고 있지 않습니다.)"
+      ],
+      metrics: [
+        { v: "2400 baud", k: "시리얼 수신 (설정값)" },
+        { v: "500ms", k: "전력 폴링 주기 (설정값)" }
+      ],
+      aside: "문자 단위 수동 파싱이라 baud·프레임 형식이 아두이노 펌웨어와 강결합됩니다. 펌웨어 프로토콜이 바뀌면 파서도 같이 고쳐야 합니다."
+    },
+    {
+      tags: ["OCPP", "프로토콜"],
+      title: "측정값을 그냥 던지지 않고, 백엔드가 기대하는 OCPP 트랜잭션 흐름에 맞췄다",
+      teaser: "전력값만 단발로 보내면 어느 충전 세션인지 못 엮는다",
+      problem: [
+        "백엔드는 OCPP 2.0.1 규격(TransactionEvent <code>Started</code>→<code>Updated</code>→<code>Ended</code>, <code>transactionId</code>, <code>seqNo</code>)을 기대합니다. 전력값만 단발로 보내면 <strong>백엔드가 어느 충전 세션의 값인지 엮지 못합니다.</strong>"
+      ],
+      analyze: [
+        "충전을 <strong>상태 전이</strong>로 모델링했습니다. 전력이 임계값을 넘으면 <code>Started</code>, 진행 중엔 주기적으로 <code>Updated</code>(+MeterValues), 끊기면 <code>Ended</code>.",
+        "<code>transactionId</code>는 처음엔 클라이언트가 자체 카운터로 매겼는데, <strong>서버가 아는 ID와 어긋나 같은 충전이 다른 세션으로 쪼개졌습니다.</strong> 그래서 클라이언트 자체 생성을 버리고 <strong>서버 응답에서 받은 ID에 맞춰 동기화</strong>하도록 고쳤습니다 — 제 커밋 <code>tx메시지 response에 맞춘 request 수정</code>이 그 내용입니다."
+      ],
+      action: [
+        "<code>send_transaction_event_started/updated/ended</code>로 이벤트를 나누고, <code>receive_message</code>에서 서버 응답의 <code>customData.transactionId</code>를 파싱해 다음 트랜잭션 ID를 동기화했습니다. 전력값의 0↔양수 변화를 <code>check_charging_start/end</code>로 감지해 전이 시점에만 이벤트를 쐈습니다."
+      ],
+      snippet: "eventType: Started  →  triggerReason: CablePluggedIn   # 충전 시작\neventType: Updated  →  triggerReason: MeterValuePeriodic # 주기 보고 + MeterValues\neventType: Ended    →  triggerReason: EVDisconnected     # 종료\n\n# 서버 응답의 transactionId에 맞춰 다음 ID 동기화\ntx_id = payload[\"customData\"][\"transactionId\"]  # 클라이언트가 임의 생성 X",
+      result: [
+        "클라이언트가 임의로 매기던 ID가 서버 응답 ID와 어긋나 세션이 쪼개지던 문제가 사라지고, 한 충전의 시작~종료 이벤트가 <strong>하나의 <code>transactionId</code>로 묶여</strong> 서버에 도착합니다. (요금·누적 전력량 수치는 보고서 영역입니다.)"
+      ],
+      aside: "충전 시작/종료를 전력 임계값으로 추론하므로 임계값 근처에서 값이 흔들리면 오탐 가능성이 있어, 상태가 실제로 바뀌는 시점(0↔양수)에만 이벤트를 쏘도록 방어했습니다."
+    }
+  ],
+
+  /* ---- 회고 (요약) ---- */
+  retro: {
+    intro: "하드웨어 실기기를 직접 만지며 돌린 프로젝트라, 소프트웨어만 할 때는 안 보이던 것들이 남았습니다.",
+    items: [
+      "<strong>형상관리</strong> — 라즈베리파이 실기기에서 직접 고치다 보니 git 이력이 얇게 남았습니다. 실기기라도 커밋을 자주 남겼어야 변경·기여 추적이 됩니다.",
+      "<strong>시리얼 파싱</strong> — 문자 단위 수동 파싱 대신 정해진 프레임/체크섬이나 검증된 라이브러리를 썼다면 펌웨어 강결합과 노이즈 처리를 덜었을 것입니다.",
+      "<strong>재연결 전략</strong> — 고정 간격 재연결 대신 백오프를 두면 서버 부하를 줄일 수 있습니다.",
+      "<strong>안전 인터록</strong> — 전력 차단을 소프트웨어에만 의존하지 않고 하드웨어 인터록을 병행했어야 더 안전합니다."
+    ],
+    closing: "충전 로직보다 <strong>연결을 세우고 유지하는 것, 끊겨도 데이터가 안 사라지게 하는 것</strong>이 실제로 가장 많은 시간을 쓴 부분이었고, 하드웨어와 백엔드 사이를 잇는 일이 어디서 깨지는지를 이 프로젝트에서 알게 됐습니다."
+  }
+};
+
+/* ============================================================
+   렌더링 로직 (수정 불필요)
+   ============================================================ */
+const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function render(){
+  document.getElementById("navCode").href = CONTENT.githubUrl;
+  document.getElementById("footerGithub").href = CONTENT.githubUrl;
+
+  document.getElementById("heroSection").innerHTML = `
+    <div class="role-line">${CONTENT.roleLine}<span class="badge">${CONTENT.badge}</span></div>
+    <h1>${CONTENT.title}</h1>
+    <div class="meta">${CONTENT.meta}</div>
+    <div class="link-row">
+      ${CONTENT.links.map(l => `<a class="btn ${l.primary ? 'btn-primary' : 'btn-ghost'}" href="${l.href}">${l.label}</a>`).join("")}
+    </div>
+  `;
+
+  const ov = CONTENT.overview;
+  document.getElementById("overviewPane").innerHTML = `
+    <p class="ov-oneliner">${ov.oneliner}</p>
+    <div class="ov-block">
+      <div class="ov-label">한 일</div>
+      <ul class="ov-did">${ov.did.map(d => `<li>${d}</li>`).join("")}</ul>
+      <div class="ov-scope">${ov.scope}</div>
+    </div>
+    <div class="ov-block">
+      <div class="ov-label">핵심 정보</div>
+      <div class="ov-facts">
+        ${ov.facts.map(f => `<div class="ov-fact"><span class="k">${f.k}</span><span class="v">${f.v}</span></div>`).join("")}
+      </div>
+    </div>
+    <div class="ov-block">
+      <div class="ov-label">기술 스택</div>
+      <div class="chip-row">${ov.stack.map(s => `<span class="chip">${s}</span>`).join("")}</div>
+    </div>
+  `;
+
+  const part = (label, cls, texts, extra = "", blockClass = "") => `
+    <div class="p-part ${blockClass}">
+      <span class="p-label ${cls}">${label}</span>
+      <div class="p-text">${(texts || []).map(t => `<p>${t}</p>`).join("")}${extra}</div>
+    </div>`;
+
+  document.getElementById("problemsPane").innerHTML = `
+    <div class="problems-head">
+      <h2>Trouble Shooting</h2>
+      <span class="count">${CONTENT.problems.length}</span>
+    </div>
+    ${CONTENT.problems.map((p, i) => {
+      const snippetHtml = p.snippet ? `<pre class="snippet">${esc(p.snippet)}</pre>` : "";
+      const metricsHtml = (p.metrics && p.metrics.length) ? `
+        <div class="metric-line">
+          ${p.metrics.map(m => `<div class="metric"><span class="v">${m.v}</span><span class="k">${m.k}</span></div>`).join("")}
+        </div>` : "";
+      const asideHtml = p.aside ? `<div class="aside"><p>${p.aside}</p></div>` : "";
+      return `
+      <details class="problem"${i === 0 ? " open" : ""}>
+        <summary>
+          <div class="sum-main">
+            <div class="p-tags">${p.tags.map((t, ti) => `<span class="p-tag${ti === 0 ? ' primary' : ''}">${t}</span>`).join("")}</div>
+            <h3>${p.title}</h3>
+            <div class="p-teaser">${p.teaser}</div>
+          </div>
+          <span class="p-chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="p-body">
+          ${part("문제", "lbl-problem", p.problem)}
+          ${part("분석", "lbl-analyze", p.analyze, "", "analyze-part")}
+          ${part("실행", "lbl-action", p.action, snippetHtml)}
+          ${part("결과", "lbl-result", p.result, metricsHtml)}
+          ${asideHtml}
+        </div>
+      </details>`;
+    }).join("")}
+  `;
+
+  const r = CONTENT.retro;
+  document.getElementById("retroSection").innerHTML = `
+    <h2>지금 다시 한다면</h2>
+    <div class="retro">
+      <p>${r.intro}</p>
+      <ul>${r.items.map(i => `<li>${i}</li>`).join("")}</ul>
+      <p class="closing">${r.closing}</p>
+    </div>
+  `;
+}
+render();
+</script>
+</body>
+</html>

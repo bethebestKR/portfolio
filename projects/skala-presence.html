@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKALA 재실 측정 수집 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#0066cc;
+    --canvas:#ffffff;
+    --parchment:#f5f5f7;
+    --ink:#1d1d1f;
+    --ink-muted-80:#333333;
+    --ink-muted-48:#7a7a7a;
+    --hairline:#e0e0e0;
+    --divider-soft:rgba(0,0,0,0.06);
+    --red:#c0392b;
+    --red-bg:rgba(192,57,43,0.08);
+    --green:#1e965a;
+    --green-bg:rgba(30,150,90,0.10);
+    --blue-bg:rgba(0,102,204,0.08);
+    --radius-lg:18px;
+    --radius-pill:9999px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--canvas); color:var(--ink);
+    font-family:-apple-system, system-ui, 'Inter', sans-serif;
+    line-height:1.47; -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+  code{
+    font-family:'JetBrains Mono', monospace; font-size:0.86em;
+    background:var(--parchment); padding:2px 6px; border-radius:5px; color:var(--ink);
+  }
+
+  nav{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0 32px; height:52px;
+    border-bottom:1px solid var(--divider-soft);
+    background:rgba(245,245,247,0.8);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    position:sticky; top:0; z-index:10;
+  }
+  .back-link{ font-size:14px; color:var(--primary); }
+  .back-link:hover{ opacity:0.75; }
+  .nav-note{
+    font-size:13px; color:var(--ink-muted-48);
+    background:var(--parchment); padding:6px 14px; border-radius:var(--radius-pill);
+  }
+
+  .wrap{ max-width:1160px; margin:0 auto; padding:0 40px; }
+
+  /* ---- HERO (요약) ---- */
+  .hero{ padding:44px 0 28px; }
+  .hero .role-line{
+    font-size:13px; font-weight:600; color:var(--primary);
+    letter-spacing:0.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .badge{
+    display:inline-block; font-size:12px; font-weight:500; color:var(--ink-muted-48);
+    background:var(--parchment); padding:5px 12px; border-radius:var(--radius-pill);
+    margin-left:10px;
+  }
+  .hero h1{ font-size:clamp(30px,4.4vw,46px); font-weight:600; letter-spacing:-0.5px; line-height:1.12; margin-bottom:8px; }
+  .hero .meta{ font-size:14px; color:var(--ink-muted-48); margin-bottom:20px; }
+  .repo-note{
+    font-size:13.5px; color:var(--ink-muted-48);
+    border:1px dashed var(--hairline); border-radius:12px; padding:12px 16px;
+    max-width:640px; line-height:1.55;
+  }
+  .repo-note strong{ color:var(--ink-muted-80); font-weight:600; }
+
+  .divider{ height:1px; background:var(--hairline); margin:0 0 40px; }
+
+  /* ---- 2단 레이아웃: 좌 Overview(요약) / 우 문제 토글(강조) ---- */
+  .work-layout{
+    display:grid; grid-template-columns:340px minmax(0,1fr); gap:56px;
+    align-items:start; margin-bottom:64px;
+  }
+  .overview-pane{ position:sticky; top:76px; }
+  .ov-oneliner{ font-size:16px; line-height:1.62; color:var(--ink-muted-80); margin-bottom:24px; }
+  .ov-label{
+    font-size:11px; font-weight:600; color:var(--ink-muted-48);
+    letter-spacing:0.6px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .ov-block{ margin-bottom:24px; }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:7px; }
+  .chip{
+    font-size:13px; font-weight:500; color:var(--ink);
+    background:var(--parchment); border:1px solid var(--hairline);
+    padding:6px 12px; border-radius:var(--radius-pill);
+  }
+  .chip.accent{ color:var(--primary); background:var(--blue-bg); border-color:transparent; }
+  .ov-scope{
+    font-size:12.5px; line-height:1.5; color:var(--ink-muted-48); margin-top:10px;
+  }
+  .ov-facts{ display:flex; flex-direction:column; gap:0; border:1px solid var(--hairline); border-radius:14px; overflow:hidden; }
+  .ov-fact{ display:flex; gap:12px; padding:10px 14px; font-size:13px; }
+  .ov-fact:not(:last-child){ border-bottom:1px solid var(--hairline); }
+  .ov-fact .k{ width:52px; flex-shrink:0; color:var(--ink-muted-48); }
+  .ov-fact .v{ color:var(--ink); }
+
+  /* ---- 문제 패널 (강조) ---- */
+  .problems-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:22px; }
+  .problems-head h2{ font-size:31px; font-weight:600; letter-spacing:-0.5px; }
+  .problems-head .count{
+    font-size:15px; font-weight:600; color:var(--ink-muted-48);
+    background:var(--parchment); padding:3px 12px; border-radius:var(--radius-pill);
+  }
+
+  details.problem{
+    border:1px solid var(--hairline); border-radius:18px; margin-bottom:12px;
+    background:var(--canvas); overflow:hidden; transition:border-color .15s ease;
+  }
+  details.problem:hover{ border-color:#c9c9cf; }
+  details.problem[open]{ border-color:#b9b9c0; }
+  details.problem summary{
+    list-style:none; cursor:pointer; padding:22px 24px;
+    display:flex; align-items:flex-start; gap:14px;
+  }
+  details.problem summary::-webkit-details-marker{ display:none; }
+  .sum-main{ flex:1; min-width:0; }
+  .p-tags{ display:flex; gap:6px; margin-bottom:7px; flex-wrap:wrap; }
+  .p-tag{
+    font-size:12px; font-weight:600; letter-spacing:0.3px;
+    color:var(--ink-muted-48); background:var(--parchment);
+    padding:4px 10px; border-radius:var(--radius-pill);
+  }
+  .p-tag.primary{ color:var(--ink-muted-80); background:var(--parchment); }
+  .sum-main h3{ font-size:20px; font-weight:600; letter-spacing:-0.3px; line-height:1.32; color:var(--ink); }
+  .p-teaser{ font-size:15.5px; color:var(--ink-muted-48); margin-top:6px; line-height:1.5; }
+  .p-chevron{
+    flex-shrink:0; width:22px; height:22px; margin-top:2px; position:relative;
+  }
+  .p-chevron::before, .p-chevron::after{
+    content:""; position:absolute; top:10px; width:10px; height:2px;
+    background:var(--ink-muted-48); border-radius:2px; transition:transform .2s ease;
+  }
+  .p-chevron::before{ left:2px; transform:rotate(45deg); }
+  .p-chevron::after{ right:2px; transform:rotate(-45deg); }
+  details.problem[open] .p-chevron::before{ transform:rotate(-45deg); }
+  details.problem[open] .p-chevron::after{ transform:rotate(45deg); }
+  details.problem[open] .p-chevron::before, details.problem[open] .p-chevron::after{ background:var(--ink-muted-80); }
+
+  .p-body{ padding:2px 24px 24px; }
+  .p-part{ padding:18px 0; border-top:1px solid var(--divider-soft); }
+  .p-part:first-child{ border-top:none; padding-top:8px; }
+  .p-label{
+    display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.8px;
+    text-transform:uppercase; color:var(--ink-muted-48); margin-bottom:12px;
+  }
+  .lbl-problem, .lbl-action, .lbl-result{ color:var(--ink-muted-48); }
+  .lbl-analyze{ color:var(--primary); }
+  .p-part.analyze-part{ border-left:2px solid var(--primary); padding-left:16px; }
+  .p-text p{ font-size:17px; line-height:1.68; color:var(--ink-muted-80); margin-bottom:13px; }
+  .p-text p:last-child{ margin-bottom:0; }
+  .p-text p strong{ color:var(--ink); font-weight:600; }
+
+  pre.snippet{
+    font-family:'JetBrains Mono', monospace; font-size:13px; line-height:1.6;
+    background:#1d1d1f; color:#f0f0f2; border-radius:10px; padding:15px 16px;
+    overflow-x:auto; margin:12px 0 4px;
+  }
+
+  .metric-line{ display:flex; gap:24px; flex-wrap:wrap; margin-top:16px; }
+  .metric .v{ font-size:18px; font-weight:600; letter-spacing:-0.374px; display:block; color:var(--ink); }
+  .metric .k{ color:var(--ink-muted-48); font-size:12.5px; }
+
+  .aside{ border-left:3px solid var(--primary); padding:2px 0 2px 14px; margin:14px 0 2px; }
+  .aside p{ font-size:14px; line-height:1.6; color:var(--ink-muted-48); }
+  .aside.warn{ border-left-color:var(--red); }
+  .aside.warn p{ color:var(--ink-muted-80); }
+
+  /* ---- 회고 (요약, 전체폭) ---- */
+  .retro-wrap{ margin-bottom:64px; }
+  .retro-wrap > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:16px; }
+  .retro{ background:var(--parchment); border-radius:var(--radius-lg); padding:30px 32px; }
+  .retro > p{ font-size:16.5px; line-height:1.62; color:var(--ink-muted-80); }
+  .retro ul{ list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:14px 32px; margin-top:20px; }
+  .retro li{ font-size:15.5px; line-height:1.58; color:var(--ink-muted-80); padding-left:18px; position:relative; }
+  .retro li::before{
+    content:""; position:absolute; left:0; top:8px; width:6px; height:6px; border-radius:50%; background:var(--primary);
+  }
+  .retro li strong{ color:var(--ink); font-weight:600; }
+  .retro .closing{ margin-top:18px; font-size:15.5px; }
+
+  footer{
+    max-width:1080px; margin:0 auto; padding:30px 32px 72px;
+    border-top:1px solid var(--hairline);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;
+  }
+  footer a{ font-size:15px; color:var(--primary); }
+  footer a:hover{ opacity:0.75; }
+  footer .foot-note{ font-size:13px; color:var(--ink-muted-48); }
+
+  @media (max-width:860px){
+    .work-layout{ grid-template-columns:1fr; gap:36px; }
+    .overview-pane{ position:static; }
+    .retro ul{ grid-template-columns:1fr; }
+  }
+  @media (max-width:640px){
+    nav, .wrap, footer{ padding-left:20px; padding-right:20px; }
+    .hero{ padding:32px 0 24px; }
+    .problems-head h2{ font-size:22px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="back-link" href="../index.html">← 포트폴리오</a>
+  <span class="nav-note">저장소 비공개 · 사내 인프라</span>
+</nav>
+
+<div class="wrap">
+  <section class="hero" id="heroSection"></section>
+  <div class="divider"></div>
+  <div class="work-layout">
+    <aside class="overview-pane" id="overviewPane"></aside>
+    <main class="problems-pane" id="problemsPane"></main>
+  </div>
+  <section class="retro-wrap" id="retroSection"></section>
+</div>
+
+<footer>
+  <a href="../index.html">← 모든 프로젝트 보기</a>
+  <span class="foot-note" id="footNote"></span>
+</footer>
+
+<script>
+/* ============================================================
+   SKALA 재실 측정 수집 에이전트 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
+
+   설계 의도 (면접관이 빠르게 넘기다 멈추게):
+   - 왼쪽 Overview = 요약 (무슨 프로젝트 / 무슨 역할)
+   - 오른쪽 = 맞닥뜨린 문제들을 토글 카드로 크게
+   - 카드를 열면  문제 정의 → 분석·왜 이렇게 → 실행 → 결과  순 (PAAR)
+
+   ⚠️ 보안: 사내 IP·D1 database ID·토큰·직원 실명은 절대 넣지 않는다.
+      (OUI 00:E0:4C 은 공개된 벤더 프리픽스라 무방. 스키마 컬럼명은 비밀 아님.)
+   ============================================================ */
+const CONTENT = {
+  roleLine: "Data Collection · Network Measurement",
+  badge: "PoC · 방향 전환",
+  title: "SKALA 재실 측정 — 사내망을 ARP로 스캔해 '켜진 PC'를 세는 수집 에이전트",
+  meta: "SKALA · 사내 재실 측정 수집 에이전트(scan/sync) 담당 · 데이터 품질·비용 사고 대응",
+  repoNote: "이 프로젝트는 <strong>사내망 인프라</strong>(대역·기기·D1 접속정보)를 다뤄 저장소를 비공개로 유지합니다. 아래 내용은 민감정보를 뺀 접근·판단 과정만 정리한 것입니다.",
+
+  /* ---- 왼쪽: Overview (요약) ---- */
+  overview: {
+    oneliner: "실제 자리에 앉아 일·공부하는 사람 수를 파악해(냉방 등 운영 인사이트) 위해, 사내망을 ARP로 스캔해 '지금 켜져 있는 PC'를 1분마다 수집해 Cloudflare D1로 보내는 수집 에이전트. 스캔·전송과 데이터 품질, 그리고 비용 사고 대응을 제가 맡았습니다.",
+    roles: ["ARP 스캔 수집기(scan/sync)", "D1 스키마·증분 동기화", "이상치·패턴 분류", "launchd 무인 운영", "비용 사고 대응"],
+    scope: "사원번호↔MAC 매칭 HTTP 서비스와 최종 집계·리포트는 팀원/서버 담당입니다. 이 문서는 제가 맡은 로컬 스캔·전송과 데이터 품질만 다룹니다.",
+    facts: [
+      { k: "팀", v: "SKALA · 수집 에이전트 나 담당" },
+      { k: "대상", v: "사내망 ARP 스캔 → Cloudflare D1" },
+      { k: "주기", v: "1분(정각 정렬) · KST 01~06 정지" },
+      { k: "상태", v: "개인정보 이슈로 방향 전환" }
+    ],
+    stack: ["Python 3", "arp-scan", "SQLite", "Cloudflare D1", "launchd (macOS)", "REST API"]
+  },
+
+  /* ---- 오른쪽: Trouble Shooting ----
+     순서 원칙: 판단이 많이 들어간 것 최우선(핑→ARP 전환), 사용자 강조 스토리(이상치·$33)를 상단에.
+     각 카드는 PAAR. 수치는 로그·arp_pattern.py·실측에서 확인된 값만 사용(지어내지 않음). */
+  problems: [
+    {
+      tags: ["접근 전환", "ARP"],
+      title: "핑에 응답이 안 왔다 — 그런데 '핑을 보낸다는 것 자체'가 단서였다",
+      teaser: "방화벽이 핑 응답을 막았지만, 핑을 쏘려면 그 전에 반드시 일어나는 일이 있었다",
+      problem: [
+        "목표는 사내에서 <strong>실제 자리에 앉아 있는 사람 수</strong>를 파악하는 것이었습니다. 가장 직관적인 출발은 \"살아있는 기기면 핑에 답하겠지\"였는데, <strong>방화벽이 ICMP(핑)를 막아 응답이 오지 않아</strong> 첫걸음부터 막혔습니다."
+      ],
+      analyze: [
+        "핑 <strong>응답</strong>은 못 받아도, 핑을 <strong>보내는 행위 자체</strong>는 일어납니다. 컴퓨터가 특정 IP로 패킷을 보내려면 그 전에 반드시 \"그 IP의 MAC 주소가 뭐야?\"를 네트워크에 물어야 하기 때문입니다 — 이게 ARP입니다.",
+        "ARP는 <strong>L2 브로드캐스트</strong>라, 방화벽이 거르는 L3 ICMP 필터를 애초에 타지 않습니다. 그래서 뚫으려고 애쓰는 대신 <strong>신호 자체를 ICMP에서 ARP로 바꿨습니다</strong> — 응답을 못 받는 채널을 붙잡지 않고, 원래 막히지 않는 채널로 옮긴 판단입니다."
+      ],
+      action: [
+        "대역에 ARP 요청을 쏘고, 응답한 IP·MAC을 확인하는 방식으로 전환했습니다. \"핑이 되는지\"가 아니라 \"ARP에 응답하는지\"를 재실 신호로 삼았습니다."
+      ],
+      result: [
+        "방화벽에 막혀 첫걸음도 못 떼던 접근이 뚫려, <strong>켜져 있는 기기가 실제로 잡히기 시작</strong>했습니다. 이후 모든 수집이 이 ARP 전환 위에서 돌아갑니다."
+      ],
+      metrics: [
+        { v: "ICMP → ARP", k: "재실 신호를 전환" },
+        { v: "L2 브로드캐스트", k: "방화벽(L3 필터)을 안 탐" }
+      ],
+      aside: "처음엔 핑 응답 자체를 어떻게든 받아내려 방화벽 우회를 고민했지만, \"막힌 신호를 뚫는다\"가 아니라 \"안 막히는 신호로 바꾼다\"가 답이었습니다."
+    },
+    {
+      tags: ["데이터 품질", "이상치"],
+      title: "새벽·주말에도 '켜져 있음'으로 잡히는 기기가 절반 — 사람은 없는데 왜",
+      teaser: "ARP on = 기기가 살아있음이지, 사람이 쓰는 중이 아니었다",
+      problem: [
+        "ARP로 켜진 기기를 잡기 시작하니, 이번엔 <strong>데이터에 이상치가 쏟아졌습니다.</strong> 사무실에 아무도 없어야 할 새벽 0~1시와 주말 내내 '켜져 있음'으로 잡히는 기기가 대량이었고, 매시간 규칙적으로 <strong>~60분 on → ~15분 off를 반복하는 톱니 패턴</strong>이 하루 종일 이어졌습니다. 이대로 \"켜진 시간 = 사용 시간\"으로 집계하면 재실이 크게 과대집계됩니다."
+      ],
+      analyze: [
+        "원인을 단정하지 않고 두 가설을 <strong>데이터로 갈랐습니다.</strong>",
+        "<strong>① 스캔 장애인가?</strong> — 한 기기가 빠진 15분 공백 각각에 대해 그 시간 글로벌 스캔이 몇 번 돌았는지 집계했습니다. 모든 공백에서 스캔은 <strong>13~19회 정상 실행</strong>되며 매번 다른 140여 개 MAC을 잡고 있었습니다 → 스캔은 멀쩡했고 <strong>이 기기 하나만</strong> 주기적으로 ARP에서 빠진 것.",
+        "<strong>② 핑을 보조 신호로 쓰면 슬립을 거를 수 있나?</strong> — 70대를 1분마다 arp-scan과 ping을 <strong>동시 로깅</strong>(23분)했습니다. 그런데 원하던 판별 신호 <code>ARP=1 &amp; 핑=0</code>은 70대 × 23분 중 <strong>단 1분</strong>만 나왔습니다(사실상 노이즈). 핑이 ARP를 1:1로 따라가 슬립을 못 거릅니다 → <strong>핑 접근 폐기.</strong>",
+        "결론은 <strong>ARP offload</strong>였습니다 — 자리를 비운 채 켜둔(슬립) 랩탑의 NIC이 자면서도 ARP를 대신 응답해 밤새 on으로 잡힌 것. 그래서 \"신호를 바꿔서\"가 아니라 <strong>같은 ARP 신호의 시계열 패턴으로 분류해서</strong> 푸는 방향으로 갔습니다."
+      ],
+      action: [
+        "<code>arp_pattern.py</code>를 신설해, 두 축으로 직원 PC(OUI 00:E0:4C)를 <strong>실사용 / 부분방치 / 상시켜둠</strong>으로 분류했습니다 — 업무시간(07:30~19시) 밖 on 비율(<code>off_hours_pct</code>)과 슬립 톱니 빈도(<code>sawtooth_per_h</code>).",
+        "임계값은 임의로 정하지 않았습니다. <code>off_hours_pct</code> 모집단이 <strong>&lt;15%(퇴근함)와 ≥40%(24/7 방치)로 뚜렷이 쌍봉</strong>이라, 데이터가 스스로 갈라주는 지점을 기준선으로 삼았습니다."
+      ],
+      snippet: "# arp_pattern.py — 신호를 바꾸지 않고 ARP 시계열 '패턴'으로 분류\nOFF_ACTIVE_MAX   = 15.0   # off_hours_pct < 15%  → 실사용(밤엔 꺼짐)\nOFF_ALWAYSON_MIN = 40.0   # off_hours_pct >= 40% → 상시켜둠(24/7 방치)\nSAWTOOTH_FLAG    = 0.25   # 시간당 슬립 톱니 >= 0.25 → 슬립사이클 플래그\n# off_hours_pct 모집단이 <15% 와 >=40% 로 뚜렷이 쌍봉 → 데이터가 스스로 갈라줌",
+      result: [
+        "직원 PC 319대 중 <strong>실사용 52% · 부분방치 27% · 상시켜둠 21%</strong>(슬립 톱니 플래그 114대)로 분류돼, <strong>약 절반이 방치성으로 raw on-time을 과대집계</strong>하고 있음을 정량 확인했습니다. 백엔드 집계가 이 과대집계를 반드시 감안해야 한다는 근거가 됐습니다."
+      ],
+      metrics: [
+        { v: "70대 × 23분", k: "핑 동시측정(대체신호 검증)" },
+        { v: "단 1분", k: "ARP=1·핑=0 (노이즈 → 핑 폐기)" },
+        { v: "약 절반", k: "방치성으로 과대집계" }
+      ]
+    },
+    {
+      tags: ["운영 사고", "비용"],
+      title: "D1 read가 45억 건을 넘겨 $33이 청구되고, 3일을 멈췄다",
+      teaser: "내 수집 코드는 read를 거의 안 쓰는데 read 비용이 폭발했다",
+      problem: [
+        "Cloudflare D1의 <strong>read 사용량이 45억(45B) 행을 초과</strong>해 $33이 청구됐고, 이 문제로 <strong>최근 3일간 작업을 멈췄습니다.</strong> 그런데 제 에이전트(scan/sync)는 <code>mac_status</code>에 <strong>write만</strong> 하고, read는 <code>sync.py</code>의 가벼운 두 개(<code>ORDER BY id DESC LIMIT 1</code> 등)뿐이라 여기서 나올 양이 전혀 아니었습니다."
+      ],
+      analyze: [
+        "우리 코드에서 안 나온다면 <strong>D1에 접속하는 다른 주체</strong>가 원인입니다 — 팀원이 만든 사원번호 매칭 서비스로 범위를 좁혔습니다. 그 서비스가 날리는 쿼리는 우리 코드엔 없는 <code>employee_mapping</code> JOIN을 쓰고 있었습니다.",
+        "설계 의도는 <strong>\"DB가 갱신될 때마다 새로 들어온 최신 ~500개(1분 윈도우)만 증분으로 읽는\"</strong> 것이었는데, 실제 구현은 <strong>매 갱신마다 조건에 걸리는 전체 테이블을 통째로 다시 읽고</strong> 있었습니다. <code>mac_status</code>는 <strong>매분 100여 개씩 무한히 쌓이는 append-only 테이블</strong>이라, 갱신 1회당 읽는 행수가 시간이 갈수록 선형으로 커져 read가 폭주한 것입니다.",
+        "악화 요인도 찾았습니다 — JOIN이 <code>UPPER(mac)=UPPER(mac)</code> 형태라 <code>mac_address</code> unique 인덱스를 <strong>못 타 매 쿼리가 풀스캔에 가까웠습니다.</strong>"
+      ],
+      action: [
+        "<strong>1순위는 지혈</strong>이었습니다 — 팀원에게 넘겼던 <strong>D1 API 키를 전부 즉시 해제</strong>해 과금부터 멈추고, 그다음에 원인 쿼리를 특정했습니다.",
+        "재발급 조건을 <strong>계약으로 못박았습니다</strong>: (1) 전체 스캔이 아니라 <strong>마지막으로 읽은 <code>measured_at</code>(커서) 이후만 읽는 증분 쿼리</strong>로 고칠 것, (2) JOIN에서 <code>UPPER()</code>를 빼고 MAC을 대문자 정규화 저장으로 통일해 <strong>인덱스를 타게</strong> 할 것. 증분 읽기 예제·커서 운용법을 핸드오프 문서에 박았습니다."
+      ],
+      snippet: "-- 팀원 매칭 서비스가 매 갱신마다 날린 쿼리 (의도: 최신 ~500개 증분 / 실제: 전체 재조회)\nSELECT s.mac_address, s.measured_at\nFROM mac_status s\nJOIN employee_mapping e ON UPPER(e.mac_address) = UPPER(s.mac_address)  -- UPPER()로 unique 인덱스 미사용 → 풀스캔\nWHERE e.employee_id != '' AND s.is_on = 1 AND s.measured_at >= ?         -- ? 에 커서(직전 지점) 대신 넓은 범위\n-- mac_status 는 매분 100여 개씩 무한 증가 → 갱신 1회당 read 행수가 선형으로 폭주",
+      result: [
+        "키 해제로 <strong>과금이 즉시 중단</strong>됐고, 재발급 전 두 조건(증분 커서 + 인덱스 타는 JOIN)을 확정했습니다. append-only 테이블에 대한 \"매번 전체 읽기\"는 코드가 그대로여도 <strong>비용이 시간에 비례해 커지는 시한폭탄</strong>이었다는 걸 이 사고로 확인했습니다."
+      ],
+      metrics: [
+        { v: "$33", k: "초과 청구 (즉시 지혈)" },
+        { v: "45억+", k: "초과한 D1 read 행수" },
+        { v: "3일", k: "이 문제로 작업 중단" }
+      ],
+      asideClass: "warn",
+      aside: "실책입니다 — DB의 주인이자 스키마를 넘긴 사람으로서 read 사용량을 지속적으로 감시했어야 했는데 못 했습니다. 게다가 과금 알림을 $1에 걸어뒀지만, D1 사용량이 저녁에 한 번 집계되는 구조라 $33이 될 때까지 알림이 울리지 않았습니다 — 임계값을 낮게 잡는 것만으로는 배치 집계 지연을 못 막습니다. \"DB 쿼리 설계\"와 \"넘긴 뒤의 지속 감시\" 둘 다가 스키마를 넘기는 일의 일부였습니다."
+    },
+    {
+      tags: ["원인 추적", "네트워크"],
+      title: "ARP 테이블에 앞자리가 똑같은 MAC이 300개 넘게 떴다",
+      teaser: "맥북 자체의 MAC인 줄 알았는데, 정체가 달랐다",
+      problem: [
+        "ARP로 방향을 잡은 뒤 테이블을 까보니, 앞 3바이트(OUI)가 <code>00:E0:4C</code>로 똑같은 MAC이 <strong>300대 이상</strong> 떴습니다. 이게 무엇인지 모르면 애초에 <strong>\"무엇을 카운트할지\"를 정의할 수 없었습니다.</strong>"
+      ],
+      analyze: [
+        "처음 가설은 \"맥북 자체의 MAC\"이었는데, 확인해보니 이 OUI는 <strong>Realtek(랜칩 제조사)</strong> 것이었고 맥북 제조사가 아니었습니다.",
+        "그럼 이 칩이 어디 있나 → 책상의 <strong>허브(독)에 적힌 MAC</strong>이 ARP 테이블의 그 MAC과 일치했습니다. 즉 맥북이 허브를 거쳐 유선 연결되면 ARP에는 맥북이 아니라 <strong>허브(Realtek 칩)의 MAC이 뜬다</strong>는 뜻이었습니다."
+      ],
+      action: [
+        "여기서 <strong>\"Realtek OUI MAC 개수 = 허브로 유선 연결된(=자리에서 쓰는) 맥북 수\"</strong>라는 카운트 논리를 세웠습니다. 이후 이상치 분류(<code>arp_pattern.py</code>)도 이 OUI만 대상으로 삼아 폰·프린터·서버를 걸러냈습니다."
+      ],
+      snippet: "# ARP 테이블: 앞 3바이트(OUI)가 똑같은 MAC이 300+\n00:E0:4C:xx:xx:xx   ← OUI 00:E0:4C = Realtek(랜칩 제조사), 맥북 제조사가 아님\n# 책상 허브(독)에 적힌 MAC 과 일치 → 맥북이 허브 경유 유선연결 시 ARP엔 허브 MAC이 뜬다\n# 결론: Realtek OUI 개수 = 허브로 유선 연결된(자리에서 쓰는) 맥북 수",
+      result: [
+        "300여 개의 정체불명 MAC이 <strong>\"유선 연결된 직원 PC\"</strong>라는 세는 단위로 정리됐습니다. 카운트의 대상이 명확해진 것입니다."
+      ]
+    },
+    {
+      tags: ["데이터 품질", "도구 선택"],
+      title: "캐시를 읽었더니 죽은 기기·빈 응답이 섞여 있었다",
+      teaser: "\"IP를 안다 = 거기 기기가 있다\"가 항상 참은 아니었다",
+      problem: [
+        "ARP <strong>캐시</strong>를 읽어 세는 방식으로 갔더니 쓰레기가 섞였습니다 — 응답 없는 빈 엔트리(<code>incomplete</code>)와, 기기가 꺼진 뒤에도 남는 죽은 엔트리(<code>STALE</code>). 캐시는 <strong>과거의 흔적</strong>도 들고 있어서 현재 재실 카운트가 부풀었습니다."
+      ],
+      analyze: [
+        "캐시를 <strong>읽지 말고 매번 직접 물어보기로</strong> 했습니다. <code>arp -a</code> 캐시 조회 대신 <code>arp-scan</code>으로 ARP 요청을 그 자리에서 쏘고, <strong>지금 응답하는 것만</strong> 셉니다 — 캐시를 안 거치니 STALE·incomplete가 원천 소멸합니다.",
+        "\"패킷을 한꺼번에 몰아 쏘면 응답을 놓치지 않나?\"라는 우려는 <strong>3-way 비교 실험</strong>으로 확인했습니다 — 일괄 스캔 vs 50ms 감속 vs IP 하나씩 개별 호출을 조건 고정 후 반복. 세 방식 모두 <strong>382~384개로 사실상 동일</strong>했고 일괄이 호스트를 놓친다는 증거가 없어(일괄 4초 vs 개별 16분), 느린 방식은 이득 없이 비용만 컸습니다 → 일괄 유지."
+      ],
+      action: [
+        "<code>arp-scan</code> CLI로 전환하고, 응답한 MAC마다 <code>is_on=1</code> row 하나씩만 저장했습니다. <strong>무응답은 row 자체를 안 남기고</strong>, off 여부는 서버에서 \"최근 N분간 그 MAC의 row가 없음\"으로 추론하게 설계했습니다."
+      ],
+      snippet: "# arp -a (캐시 조회): STALE(꺼진 뒤 남은 죽은 엔트리) · incomplete(빈 응답)가 섞임\n#  → 캐시 대신 매번 직접 물어봄\nsudo arp-scan --interface=<사내 IF> <사내 대역>   # 지금 응답하는 것만 센다\n# 응답한 MAC만 is_on=1 로 기록, 무응답은 row 자체를 안 남김(off는 서버에서 추론)\n# 검증: 일괄 vs 50ms 감속 vs IP 개별호출 3-way → 382~384개로 동일(일괄이 놓친단 증거 없음)",
+      result: [
+        "STALE·incomplete가 원천 소멸하고, <strong>켜져 있는 기기의 현재 응답만</strong> 카운트에 들어갑니다. 캐시 기반의 유령 카운트가 사라졌습니다."
+      ]
+    }
+  ],
+
+  /* ---- 회고 (요약) ---- */
+  retro: {
+    intro: "네트워크 신호로 사람을 세려던 프로젝트라, 데이터가 \"잡힌다\"와 \"믿을 수 있다\"가 전혀 다른 문제라는 걸 계속 마주쳤습니다. 그리고 비용 사고에서 제 감시 책임을 분명히 확인했습니다.",
+    items: [
+      "<strong>지속적인 감시</strong> — DB의 주인으로서 read 사용량을 주기적으로 확인했어야 하는데 못 해, 팀원 쿼리 하나가 3일간 $33까지 불어난 뒤에야 알았습니다. 넘긴 뒤에도 사용량을 모니터링하는 게 스키마를 넘기는 일의 일부였습니다.",
+      "<strong>과금 알림의 함정</strong> — 알림을 $1에 걸어뒀지만 사용량이 저녁에 한 번 집계되는 구조라 $33이 될 때까지 안 울렸습니다. 임계값을 낮추는 것만으로는 배치 집계 지연을 못 막고, 사용량 자체를 능동적으로 조회하는 감시가 필요했습니다.",
+      "<strong>계약으로서의 쿼리</strong> — 외부에 DB를 넘길 땐 \"무엇을 읽느냐\"뿐 아니라 \"얼마나·어떻게(증분 vs 전체, 커서, 인덱스를 타는 형태)\"까지 문서로 못박아야 했습니다. append-only 테이블에서 \"매번 전체 읽기\"는 코드가 그대로여도 비용이 선형으로 커집니다.",
+      "<strong>개인정보의 벽</strong> — MAC↔사람 매칭으로 \"누가 얼마나 남아 공부하는지\"까지 알아낼 수 있었지만, 개인정보 보호 문제로 그 방향을 접고 본인이 직접 동의·입력하는 형식으로 전환해야 한다는 결론에 도달했습니다."
+    ],
+    closing: "신호가 \"잡힌다\"에서 멈추지 않고 그게 실제 사실(재실)을 반영하는지 계속 의심하고 데이터로 검증한 것, 그리고 비용 사고에서 <strong>DB 쿼리 설계와 지속 감시의 중요성</strong>을 몸으로 확인한 것이 이 프로젝트에서 남은 부분입니다."
+  }
+};
+
+/* ============================================================
+   렌더링 로직 (수정 불필요)
+   ============================================================ */
+const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function render(){
+  document.getElementById("footNote").textContent = "사내 인프라라 저장소는 비공개입니다.";
+
+  document.getElementById("heroSection").innerHTML = `
+    <div class="role-line">${CONTENT.roleLine}<span class="badge">${CONTENT.badge}</span></div>
+    <h1>${CONTENT.title}</h1>
+    <div class="meta">${CONTENT.meta}</div>
+    <div class="repo-note">${CONTENT.repoNote}</div>
+  `;
+
+  const ov = CONTENT.overview;
+  document.getElementById("overviewPane").innerHTML = `
+    <p class="ov-oneliner">${ov.oneliner}</p>
+    <div class="ov-block">
+      <div class="ov-label">내가 맡은 것</div>
+      <div class="chip-row">${ov.roles.map(r => `<span class="chip accent">${r}</span>`).join("")}</div>
+      <div class="ov-scope">${ov.scope}</div>
+    </div>
+    <div class="ov-block">
+      <div class="ov-label">핵심 정보</div>
+      <div class="ov-facts">
+        ${ov.facts.map(f => `<div class="ov-fact"><span class="k">${f.k}</span><span class="v">${f.v}</span></div>`).join("")}
+      </div>
+    </div>
+    <div class="ov-block">
+      <div class="ov-label">기술 스택</div>
+      <div class="chip-row">${ov.stack.map(s => `<span class="chip">${s}</span>`).join("")}</div>
+    </div>
+  `;
+
+  const part = (label, cls, texts, extra = "", blockClass = "") => `
+    <div class="p-part ${blockClass}">
+      <span class="p-label ${cls}">${label}</span>
+      <div class="p-text">${(texts || []).map(t => `<p>${t}</p>`).join("")}${extra}</div>
+    </div>`;
+
+  document.getElementById("problemsPane").innerHTML = `
+    <div class="problems-head">
+      <h2>Trouble Shooting</h2>
+      <span class="count">${CONTENT.problems.length}</span>
+    </div>
+    ${CONTENT.problems.map((p, i) => {
+      const snippetHtml = p.snippet ? `<pre class="snippet">${esc(p.snippet)}</pre>` : "";
+      const metricsHtml = (p.metrics && p.metrics.length) ? `
+        <div class="metric-line">
+          ${p.metrics.map(m => `<div class="metric"><span class="v">${m.v}</span><span class="k">${m.k}</span></div>`).join("")}
+        </div>` : "";
+      const asideHtml = p.aside ? `<div class="aside ${p.asideClass || ''}"><p>${p.aside}</p></div>` : "";
+      return `
+      <details class="problem"${i === 0 ? " open" : ""}>
+        <summary>
+          <div class="sum-main">
+            <div class="p-tags">${p.tags.map((t, ti) => `<span class="p-tag${ti === 0 ? ' primary' : ''}">${t}</span>`).join("")}</div>
+            <h3>${p.title}</h3>
+            <div class="p-teaser">${p.teaser}</div>
+          </div>
+          <span class="p-chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="p-body">
+          ${part("문제", "lbl-problem", p.problem)}
+          ${part("분석 · 왜 이렇게", "lbl-analyze", p.analyze, "", "analyze-part")}
+          ${part("실행", "lbl-action", p.action, snippetHtml)}
+          ${part("결과", "lbl-result", p.result, metricsHtml)}
+          ${asideHtml}
+        </div>
+      </details>`;
+    }).join("")}
+  `;
+
+  const r = CONTENT.retro;
+  document.getElementById("retroSection").innerHTML = `
+    <h2>지금 다시 한다면</h2>
+    <div class="retro">
+      <p>${r.intro}</p>
+      <ul>${r.items.map(i => `<li>${i}</li>`).join("")}</ul>
+      <p class="closing">${r.closing}</p>
+    </div>
+  `;
+}
+render();
+</script>
+</body>
+</html>

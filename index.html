@@ -245,6 +245,46 @@ const CONTENT = {
       ],
       tech: "Java 21 · Spring Boot 3.5 · MySQL · Docker · AWS EC2/S3 · GitHub Actions",
       linkLabel: "트러블슈팅 과정 보기 →"
+    },
+    {
+      slug: "quarterback-rpi",
+      title: "QuarterBack — 아두이노 충전 신호를 백엔드로 잇는 라즈베리파이 게이트웨이",
+      badge: "캡스톤 · 종료",
+      period: "캡스톤 · 아두이노+라즈베리파이 하드웨어 체인 담당",
+      desc: "충전기에 연결된 아두이노가 흘리는 실제 전기 신호(전압·전류)를 라즈베리파이에서 읽어, OCPP 2.0.1 규격으로 팀 백엔드에 전달하는 충전기측 클라이언트. 하드웨어→백엔드 신호 전달을 맡았습니다. (백엔드·프론트는 팀원 담당)",
+      myRole: [
+        "라파를 처음 받아 연결부터 막힘 → 소켓으로 백엔드 연결 확립 + Heartbeat로 유지·재연결",
+        "아두이노 시리얼(2400 baud) 스트림을 커스텀 프레이밍(!~@)으로 파싱해 전압×전류로 전력 계산",
+        "측정값을 OCPP 트랜잭션 흐름(Started/Updated/Ended)으로 변환, 트랜잭션 ID를 서버 응답과 동기화",
+        "끊겨도 유실 안 되게 큐 순차 전송 + 응답 대기(10초) + 재시도(3회)",
+        "라파→아두이노 역방향 제어로 미인증 포트 전력 차단"
+      ],
+      impact: [
+        { k: "신호 체인", v: "아두이노 → 라파 → OCPP → 백엔드 실시간 연동" },
+        { k: "신뢰성", v: "응답 확인 후 성공 처리, 실패 시 재시도" }
+      ],
+      tech: "Python · asyncio · pyserial · websockets · OCPP 2.0.1 · Raspberry Pi · Arduino",
+      linkLabel: "구현 과정 보기 →"
+    },
+    {
+      slug: "skala-presence",
+      title: "SKALA 재실 측정 — 사내망을 ARP로 스캔해 '켜진 PC'를 세는 수집 에이전트",
+      badge: "PoC · 방향 전환",
+      period: "SKALA · 수집 에이전트(scan/sync)·데이터 품질·비용 사고 담당",
+      desc: "사내에서 실제 자리에 앉아 일하는 사람 수를 파악하려고, 사내망을 ARP로 스캔해 '지금 켜진 PC'를 1분마다 Cloudflare D1로 수집한 에이전트. 스캔·전송과 데이터 품질, 비용 사고 대응을 맡았습니다. (사원번호 매칭·집계는 팀원/서버 담당)",
+      myRole: [
+        "핑이 방화벽에 막히자, 핑 전에 반드시 일어나는 ARP로 재실 신호를 전환",
+        "밤새 켜진 것처럼 잡히는 이상치를 ARP offload로 규명 — 핑 동시측정으로 대체신호 폐기",
+        "직원 PC 319대를 실사용/부분방치/상시켜둠으로 분류 (약 절반이 방치성 과대집계)",
+        "캐시의 STALE·incomplete를 피해 arp-scan으로 '지금 응답'만 카운트",
+        "D1 read 45억+·$33 과금 사고 대응 — API 키 즉시 해제 후 증분 쿼리로 재계약"
+      ],
+      impact: [
+        { k: "이상치 규명", v: "핑 동시측정 70대×23분 → ARP=1·핑=0 단 1분, 핑 폐기" },
+        { k: "비용 사고", v: "read 45억+·$33 → 키 해제로 지혈 + 증분 커서 계약" }
+      ],
+      tech: "Python 3 · arp-scan · SQLite · Cloudflare D1 · launchd(macOS) · REST API",
+      linkLabel: "접근·판단 과정 보기 →"
     }
   ],
 
