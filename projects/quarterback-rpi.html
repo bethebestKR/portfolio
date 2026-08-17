@@ -13,7 +13,7 @@
     --parchment:#f5f5f7;
     --ink:#1d1d1f;
     --ink-muted-80:#333333;
-    --ink-muted-48:#7a7a7a;
+    --ink-muted-48:#6a6a70;
     --hairline:#e0e0e0;
     --divider-soft:rgba(0,0,0,0.06);
     --red:#c0392b;
@@ -67,7 +67,7 @@
     margin-left:10px;
   }
   .hero h1{ font-size:clamp(30px,4.4vw,46px); font-weight:600; letter-spacing:-0.5px; line-height:1.12; margin-bottom:8px; }
-  .hero .meta{ font-size:14px; color:var(--ink-muted-48); margin-bottom:20px; }
+  .hero .meta{ font-size:15px; color:var(--ink-muted-48); margin-bottom:20px; }
   .link-row{ display:flex; gap:10px; flex-wrap:wrap; }
   .btn{ font-size:15px; font-weight:400; padding:10px 20px; border-radius:var(--radius-pill); display:inline-block; }
   .btn-primary{ background:var(--primary); color:#fff; }
@@ -83,17 +83,17 @@
     align-items:start; margin-bottom:64px;
   }
   .overview-pane{ position:sticky; top:76px; }
-  .ov-oneliner{ font-size:16px; line-height:1.62; color:var(--ink-muted-80); margin-bottom:24px; }
+  .ov-oneliner{ font-size:16.5px; line-height:1.64; color:var(--ink); margin-bottom:24px; }
   .ov-label{
-    font-size:11px; font-weight:600; color:var(--ink-muted-48);
-    letter-spacing:0.6px; text-transform:uppercase; margin-bottom:10px;
+    font-size:12px; font-weight:600; color:var(--ink-muted-48);
+    letter-spacing:0.6px; text-transform:uppercase; margin-bottom:11px;
   }
   .ov-block{ margin-bottom:24px; }
   .chip-row{ display:flex; flex-wrap:wrap; gap:7px; }
   .chip{
-    font-size:13px; font-weight:500; color:var(--ink);
+    font-size:14px; font-weight:500; color:var(--ink);
     background:var(--parchment); border:1px solid var(--hairline);
-    padding:6px 12px; border-radius:var(--radius-pill);
+    padding:7px 13px; border-radius:var(--radius-pill);
   }
   .chip.accent{ color:var(--primary); background:var(--blue-bg); border-color:transparent; }
   .ov-did{ list-style:none; display:flex; flex-direction:column; gap:9px; }
@@ -103,12 +103,12 @@
   }
   .ov-did li strong{ font-weight:600; }
   .ov-scope{
-    font-size:12.5px; line-height:1.5; color:var(--ink-muted-48); margin-top:10px;
+    font-size:13.5px; line-height:1.55; color:var(--ink-muted-80); margin-top:14px;
   }
   .ov-facts{ display:flex; flex-direction:column; gap:0; border:1px solid var(--hairline); border-radius:14px; overflow:hidden; }
-  .ov-fact{ display:flex; gap:12px; padding:10px 14px; font-size:13px; }
+  .ov-fact{ display:flex; gap:12px; padding:12px 15px; font-size:14.5px; }
   .ov-fact:not(:last-child){ border-bottom:1px solid var(--hairline); }
-  .ov-fact .k{ width:52px; flex-shrink:0; color:var(--ink-muted-48); }
+  .ov-fact .k{ width:48px; flex-shrink:0; color:var(--ink-muted-48); font-weight:500; }
   .ov-fact .v{ color:var(--ink); }
 
   /* ---- 문제 패널 (강조) ---- */
@@ -138,8 +138,8 @@
     padding:4px 10px; border-radius:var(--radius-pill);
   }
   .p-tag.primary{ color:var(--ink-muted-80); background:var(--parchment); }
-  .sum-main h3{ font-size:20px; font-weight:600; letter-spacing:-0.3px; line-height:1.32; color:var(--ink); }
-  .p-teaser{ font-size:15.5px; color:var(--ink-muted-48); margin-top:6px; line-height:1.5; }
+  .sum-main h3{ font-size:21px; font-weight:600; letter-spacing:-0.3px; line-height:1.32; color:var(--ink); }
+  .p-teaser{ font-size:16px; color:var(--ink-muted-80); margin-top:6px; line-height:1.5; }
   .p-chevron{
     flex-shrink:0; width:22px; height:22px; margin-top:2px; position:relative;
   }
@@ -163,7 +163,7 @@
   .lbl-problem, .lbl-action, .lbl-result{ color:var(--ink-muted-48); }
   .lbl-analyze{ color:var(--primary); }
   .p-part.analyze-part{ border-left:2px solid var(--primary); padding-left:16px; }
-  .p-text p{ font-size:17px; line-height:1.68; color:var(--ink-muted-80); margin-bottom:13px; }
+  .p-text p{ font-size:17.5px; line-height:1.7; color:#2b2b2e; margin-bottom:13px; }
   .p-text p:last-child{ margin-bottom:0; }
   .p-text p strong{ color:var(--ink); font-weight:600; }
 
@@ -173,9 +173,9 @@
     overflow-x:auto; margin:12px 0 4px;
   }
 
-  .metric-line{ display:flex; gap:24px; flex-wrap:wrap; margin-top:16px; }
-  .metric .v{ font-size:18px; font-weight:600; letter-spacing:-0.374px; display:block; color:var(--ink); }
-  .metric .k{ color:var(--ink-muted-48); font-size:12.5px; }
+  .metric-line{ display:flex; gap:26px; flex-wrap:wrap; margin-top:16px; }
+  .metric .v{ font-size:19px; font-weight:600; letter-spacing:-0.374px; display:block; color:var(--ink); }
+  .metric .k{ color:var(--ink-muted-48); font-size:13px; }
 
   .aside{ border-left:3px solid var(--primary); padding:2px 0 2px 14px; margin:14px 0 2px; }
   .aside p{ font-size:14px; line-height:1.6; color:var(--ink-muted-48); }
@@ -184,17 +184,31 @@
   .retro-wrap{ margin-bottom:64px; }
   .retro-wrap > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:16px; }
   .retro{ background:var(--parchment); border-radius:var(--radius-lg); padding:30px 32px; }
-  .retro > p{ font-size:16.5px; line-height:1.62; color:var(--ink-muted-80); }
+  .retro > p{ font-size:17px; line-height:1.64; color:#2b2b2e; }
   .retro ul{ list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:14px 32px; margin-top:20px; }
-  .retro li{ font-size:15.5px; line-height:1.58; color:var(--ink-muted-80); padding-left:18px; position:relative; }
+  .retro li{ font-size:16px; line-height:1.6; color:#2b2b2e; padding-left:18px; position:relative; }
   .retro li::before{
     content:""; position:absolute; left:0; top:8px; width:6px; height:6px; border-radius:50%; background:var(--primary);
   }
   .retro li strong{ color:var(--ink); font-weight:600; }
   .retro .closing{ margin-top:18px; font-size:15.5px; }
 
+  /* ---- 기술 스택 · 아키텍처 (무엇을 어디에) ---- */
+  .arch-wrap{ margin-bottom:60px; }
+  .arch-wrap > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:6px; }
+  .arch-note{ font-size:15.5px; line-height:1.6; color:var(--ink-muted-80); margin-bottom:22px; max-width:760px; }
+  .arch-table{ border:1px solid var(--hairline); border-radius:var(--radius-lg); overflow:hidden; }
+  .arch-row{ display:grid; grid-template-columns:118px 1.1fr 1.3fr; gap:24px; padding:16px 24px; align-items:baseline; }
+  .arch-row:not(:last-child){ border-bottom:1px solid var(--hairline); }
+  .arch-row .cat{ font-size:13px; font-weight:700; letter-spacing:0.3px; color:var(--ink-muted-48); text-transform:uppercase; }
+  .arch-row .tech{ font-size:16px; font-weight:600; color:var(--ink); line-height:1.4; }
+  .arch-row .where{ font-size:15px; line-height:1.5; color:var(--ink-muted-80); }
+  .arch-head{ background:var(--parchment); }
+  .arch-head > div{ font-size:12px; font-weight:700; letter-spacing:0.4px; color:var(--ink-muted-48); text-transform:uppercase; }
+  @media (max-width:640px){ .arch-row{ grid-template-columns:1fr; gap:5px; padding:14px 18px; } .arch-head{ display:none; } }
+
   footer{
-    max-width:1080px; margin:0 auto; padding:30px 32px 72px;
+    max-width:1160px; margin:0 auto; padding:30px 40px 72px;
     border-top:1px solid var(--hairline);
     display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;
   }
@@ -227,6 +241,7 @@
     <aside class="overview-pane" id="overviewPane"></aside>
     <main class="problems-pane" id="problemsPane"></main>
   </div>
+  <section class="arch-wrap" id="archSection"></section>
   <section class="retro-wrap" id="retroSection"></section>
 </div>
 
@@ -247,7 +262,7 @@
 const CONTENT = {
   roleLine: "Embedded · Hardware ↔ Backend",
   badge: "캡스톤 · 종료",
-  title: "QuarterBack — 아두이노 충전 신호를 백엔드로 잇는 라즈베리파이 게이트웨이",
+  title: "QuarterBack — 충전 신호를 백엔드로 잇는 라즈베리파이 게이트웨이",
   meta: "캡스톤 · 아두이노+라즈베리파이 하드웨어 체인 담당 · OCPP 2.0.1 클라이언트",
   githubUrl: "https://github.com/Capstone-QuarterBack/rasberyPi",
   links: [
@@ -273,6 +288,20 @@ const CONTENT = {
       { k: "상태", v: "캡스톤 종료 · 코드로 확인" }
     ],
     stack: ["Python 3", "asyncio", "pyserial", "websockets", "OCPP 2.0.1", "Raspberry Pi", "Arduino", "tkinter"]
+  },
+
+  /* ---- 무엇을 · 어디에 어떤 기술을 썼나 (포트폴리오 확인용) ---- */
+  architecture: {
+    note: "제가 담당한 하드웨어→백엔드 신호 전달 체인에 쓴 기술입니다. OCPP를 수신하는 백엔드(Java)·프론트(TS)는 팀원이 담당했습니다.",
+    rows: [
+      { cat: "Language", tech: "Python 3", where: "라즈베리파이 게이트웨이 클라이언트 전체" },
+      { cat: "동시성", tech: "asyncio", where: "시리얼 수신 · 큐 전송 · WebSocket 동시 처리" },
+      { cat: "시리얼", tech: "pyserial (UART 2400 baud)", where: "아두이노 전압·전류 스트림 수신·파싱" },
+      { cat: "통신", tech: "websockets", where: "팀 백엔드와 WebSocket 연결·재연결" },
+      { cat: "프로토콜", tech: "OCPP 2.0.1", where: "TransactionEvent(Started/Updated/Ended) 트랜잭션" },
+      { cat: "하드웨어", tech: "Raspberry Pi · Arduino", where: "실기기 게이트웨이 · 전압/전류 센싱 · 전력 제어" },
+      { cat: "UI", tech: "tkinter", where: "라파 로컬 상태 확인용 GUI" }
+    ]
   },
 
   /* ---- 오른쪽: Trouble Shooting ----
@@ -327,7 +356,7 @@ const CONTENT = {
     {
       tags: ["연결", "WebSocket"],
       title: "라즈베리파이를 처음 받았을 때, 코드를 어떻게 올려 백엔드에 붙이는지부터 막혔다",
-      teaser: "충전 로직 이전에 연결 자체가 첫 관문이었다",
+      teaser: "연결 콜백 인자 개수 하나 때문에 계속 튕겼다",
       problem: [
         "하드웨어(라즈베리파이+아두이노)를 받았지만, 여기에 무엇을 어떻게 코딩해 넣어 백엔드와 통신시키는지부터 몰랐습니다. 충전 로직을 짜기 전에 <strong>연결을 세우는 것 자체가 첫 관문</strong>이었습니다."
       ],
@@ -422,7 +451,7 @@ function render(){
     <h1>${CONTENT.title}</h1>
     <div class="meta">${CONTENT.meta}</div>
     <div class="link-row">
-      ${CONTENT.links.map(l => `<a class="btn ${l.primary ? 'btn-primary' : 'btn-ghost'}" href="${l.href}">${l.label}</a>`).join("")}
+      ${CONTENT.links.map(l => `<a class="btn ${l.primary ? 'btn-primary' : 'btn-ghost'}" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`).join("")}
     </div>
   `;
 
@@ -439,10 +468,6 @@ function render(){
       <div class="ov-facts">
         ${ov.facts.map(f => `<div class="ov-fact"><span class="k">${f.k}</span><span class="v">${f.v}</span></div>`).join("")}
       </div>
-    </div>
-    <div class="ov-block">
-      <div class="ov-label">기술 스택</div>
-      <div class="chip-row">${ov.stack.map(s => `<span class="chip">${s}</span>`).join("")}</div>
     </div>
   `;
 
@@ -483,6 +508,23 @@ function render(){
         </div>
       </details>`;
     }).join("")}
+  `;
+
+  const a = CONTENT.architecture;
+  document.getElementById("archSection").innerHTML = `
+    <h2>사용 기술 및 적용 영역</h2>
+    <p class="arch-note">${a.note}</p>
+    <div class="arch-table">
+      <div class="arch-row arch-head">
+        <div>구분</div><div>기술</div><div>적용 영역</div>
+      </div>
+      ${a.rows.map(row => `
+        <div class="arch-row">
+          <div class="cat">${row.cat}</div>
+          <div class="tech">${row.tech}</div>
+          <div class="where">${row.where}</div>
+        </div>`).join("")}
+    </div>
   `;
 
   const r = CONTENT.retro;
