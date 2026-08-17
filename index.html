@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#0066cc;
+    --canvas:#ffffff;
+    --parchment:#f5f5f7;
+    --ink:#1d1d1f;
+    --ink-muted-80:#333333;
+    --ink-muted-48:#7a7a7a;
+    --hairline:#e0e0e0;
+    --divider-soft:rgba(0,0,0,0.06);
+    --radius-lg:18px;
+    --radius-pill:9999px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--canvas); color:var(--ink);
+    font-family:'Inter', system-ui, -apple-system, sans-serif;
+    line-height:1.47; -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+
+  nav{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0 32px; height:52px;
+    border-bottom:1px solid var(--divider-soft);
+    background:rgba(245,245,247,0.8);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    position:sticky; top:0; z-index:10;
+  }
+  .logo{ font-weight:600; font-size:17px; letter-spacing:-0.374px; }
+  .logo span{ color:var(--primary); }
+  .nav-right{ display:flex; align-items:center; gap:24px; }
+  .nav-links{ display:flex; gap:24px; font-size:14px; color:var(--ink-muted-80); }
+  .nav-links a:hover{ color:var(--primary); }
+  .nav-cta{
+    background:var(--primary); color:#fff; font-size:14px;
+    padding:7px 16px; border-radius:var(--radius-pill);
+  }
+  .nav-cta:hover{ opacity:0.9; }
+
+  /* ---- HERO: 무슨 개발자인지 1초 안에 ---- */
+  .hero{ max-width:860px; margin:0 auto; padding:88px 32px 56px; }
+  .hero .role-line{
+    font-size:14px; font-weight:500; color:var(--primary);
+    letter-spacing:0.4px; text-transform:uppercase; margin-bottom:16px;
+  }
+  .hero h1{
+    font-weight:600; font-size:clamp(32px,4.8vw,48px);
+    line-height:1.12; letter-spacing:-0.28px; margin-bottom:20px; max-width:720px;
+  }
+  .hero p.summary{
+    color:var(--ink-muted-80); font-size:19px; font-weight:400;
+    max-width:620px; margin-bottom:28px; letter-spacing:0.196px;
+  }
+  /* 검증 가능한 근거 3개를 히어로에 바로 노출 */
+  .proof-row{
+    display:flex; gap:0; border:1px solid var(--hairline); border-radius:var(--radius-lg);
+    overflow:hidden; margin-bottom:32px; max-width:660px;
+  }
+  .proof-item{ flex:1; padding:18px 20px; }
+  .proof-item:not(:last-child){ border-right:1px solid var(--hairline); }
+  .proof-item .num{ font-size:24px; font-weight:600; letter-spacing:-0.374px; margin-bottom:2px; }
+  .proof-item .cap{ font-size:13px; color:var(--ink-muted-48); }
+
+  .hero-cta{ display:flex; gap:12px; flex-wrap:wrap; }
+  .btn{ font-size:17px; font-weight:400; padding:11px 24px; border-radius:var(--radius-pill); display:inline-block; }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-primary:hover{ opacity:0.9; }
+  .btn-ghost{ color:var(--primary); border:1px solid var(--primary); }
+  .btn-ghost:hover{ background:rgba(0,102,204,0.06); }
+
+  .section{ max-width:860px; margin:0 auto; padding:48px 32px; }
+  .section-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:8px; }
+  .section-head h2{ font-size:28px; font-weight:600; letter-spacing:-0.374px; }
+  .section-note{ font-size:15px; color:var(--ink-muted-48); margin-bottom:28px; }
+
+  /* ---- PROJECT CARD: 역할과 결과를 카드에서 바로 ---- */
+  .projects{ display:flex; flex-direction:column; gap:18px; }
+  .card{
+    display:block; background:var(--canvas); border:1px solid var(--hairline);
+    border-radius:var(--radius-lg); padding:28px 30px;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .card:hover{ border-color:var(--primary); transform:translateY(-2px); }
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; flex-wrap:wrap; }
+  .card-top h3{ font-size:20px; font-weight:600; letter-spacing:-0.374px; }
+  .badge{
+    font-size:12px; font-weight:500; color:var(--primary);
+    background:rgba(0,102,204,0.08); padding:5px 12px; border-radius:var(--radius-pill); white-space:nowrap;
+  }
+  .card .period{ font-size:13px; color:var(--ink-muted-48); margin-bottom:12px; }
+  .card p.desc{ color:var(--ink-muted-80); font-size:16px; margin-bottom:18px; max-width:660px; }
+
+  /* 내 역할 — 카드에서 가장 눈에 띄어야 하는 부분 */
+  .my-role{
+    background:var(--parchment); border-radius:12px; padding:16px 18px; margin-bottom:16px;
+  }
+  .my-role .label{
+    font-size:12px; font-weight:600; color:var(--ink-muted-48);
+    letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px;
+  }
+  .my-role ul{ list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .my-role li{ font-size:15px; color:var(--ink); padding-left:16px; position:relative; }
+  .my-role li::before{
+    content:""; position:absolute; left:0; top:8px;
+    width:6px; height:6px; border-radius:2px; background:var(--primary);
+  }
+
+  /* 결과 — 숫자가 있으면 강조 */
+  .impact-row{ display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px; }
+  .impact{ font-size:14px; }
+  .impact .k{ color:var(--ink-muted-48); display:block; margin-bottom:1px; }
+  .impact .v{ color:var(--ink); font-weight:600; }
+
+  .card-bottom{
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    flex-wrap:wrap; padding-top:16px; border-top:1px solid var(--hairline);
+  }
+  .tech-line{ font-size:13px; color:var(--ink-muted-48); }
+  .card-link{ font-size:15px; color:var(--primary); font-weight:500; }
+
+  /* ---- STACK: 나열이 아니라 숙련도 구분 ---- */
+  .stack-groups{ display:flex; flex-direction:column; gap:0; border:1px solid var(--hairline); border-radius:var(--radius-lg); overflow:hidden; }
+  .stack-group{ display:flex; padding:16px 20px; gap:20px; }
+  .stack-group:not(:last-child){ border-bottom:1px solid var(--hairline); }
+  .stack-group .level{ width:150px; flex-shrink:0; }
+  .stack-group .level .t{ font-size:15px; font-weight:600; }
+  .stack-group .level .d{ font-size:12px; color:var(--ink-muted-48); margin-top:2px; }
+  .stack-group .items{ font-size:15px; color:var(--ink-muted-80); align-self:center; }
+
+  footer{
+    max-width:860px; margin:0 auto; padding:40px 32px 72px;
+    border-top:1px solid var(--hairline); margin-top:32px;
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+  }
+  footer .copyright{ color:var(--ink-muted-48); font-size:12px; }
+  footer .contact-links{ display:flex; gap:20px; font-size:15px; color:var(--primary); }
+  footer .contact-links a:hover{ opacity:0.75; }
+
+  @media (max-width:640px){
+    nav{ padding:0 20px; }
+    .nav-links{ display:none; }
+    .hero{ padding:64px 20px 44px; }
+    .section{ padding:36px 20px; }
+    .proof-row{ flex-direction:column; }
+    .proof-item:not(:last-child){ border-right:none; border-bottom:1px solid var(--hairline); }
+    .stack-group{ flex-direction:column; gap:6px; }
+    .stack-group .level{ width:auto; }
+    footer{ padding:36px 20px 56px; flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" id="logo"></div>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="#projects">Projects</a>
+      <a href="#stack">Stack</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a class="nav-cta" id="navCta" href="#"></a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="role-line" id="roleLine"></div>
+  <h1 id="heroTitle"></h1>
+  <p class="summary" id="heroSummary"></p>
+  <div class="proof-row" id="proofRow"></div>
+  <div class="hero-cta" id="heroCta">
+    <a class="btn btn-primary" id="ctaPrimary" href="#"></a>
+  </div>
+</section>
+
+<section class="section" id="projects">
+  <div class="section-head"><h2>Projects</h2></div>
+  <div class="section-note" id="projectsNote"></div>
+  <div class="projects" id="projectList"></div>
+</section>
+
+<section class="section" id="stack">
+  <div class="section-head"><h2>Stack</h2></div>
+  <div class="section-note" id="stackNote"></div>
+  <div class="stack-groups" id="stackGroups"></div>
+</section>
+
+<footer id="contact">
+  <div class="copyright" id="copyright"></div>
+  <div class="contact-links" id="contactLinks"></div>
+</footer>
+
+<script>
+/* ============================================================
+   여기만 수정하면 사이트 전체 내용이 바뀝니다.
+   설계 원칙: 채용 담당자가 1~2분 안에
+   (1) 무슨 개발자인지 (2) 내가 뭘 했는지 (3) 코드를 볼 수 있는지
+   를 파악할 수 있어야 합니다.
+   ============================================================ */
+const CONTENT = {
+  logo: "bethebestKR",
+  navCta: { label: "GitHub", href: "https://github.com/bethebestKR/AKIBA-Backend" },
+
+  hero: {
+    roleLine: "Backend / Cloud Engineer",
+    title: "인증부터 실시간 통신, AWS 배포까지 직접 만들고 운영했습니다.",
+    summary: "Spring Boot 기반 백엔드를 주로 다루고, 담당자 없이 EC2 인프라와 CI/CD를 직접 구성해 운영한 경험이 있습니다. 문제 대부분은 코드가 아니라 실행 환경에서 나왔고, 그 과정을 기록해두었습니다.",
+    proof: [
+      { num: "OAuth2 + JWT", cap: "소셜 로그인 직접 구현" },
+      { num: "STOMP", cap: "WebSocket 실시간 채팅" },
+      { num: "AWS", cap: "EC2 · S3 운영 · SAA 준비 중" }
+    ],
+    ctaPrimary: { label: "코드 보기 (GitHub) →", href: "https://github.com/bethebestKR/AKIBA-Backend" }
+  },
+
+  projectsNote: "많이 나열하기보다, 설계 근거와 트러블슈팅을 설명할 수 있는 프로젝트를 담았습니다.",
+
+  projects: [
+    {
+      slug: "akiba-backend",
+      title: "AKIBA — 오타쿠 굿즈 마켓플레이스 백엔드",
+      badge: "개발 · 배포 완료",
+      period: "4인 팀 (백엔드 2) · 인증 · 실시간 채팅 · AWS 인프라 담당",
+      desc: "중고거래·경매·커뮤니티·실시간 채팅을 제공하는 마켓플레이스의 백엔드. 백엔드 2명 중 AWS 서버·CI/CD, OAuth2 로그인, WebSocket 채팅을 맡았습니다. (경매·마켓 도메인은 다른 팀원 담당)",
+      myRole: [
+        "STOMP CONNECT 시점 JWT 인증 — accessor 복사본 문제로 세션이 비던 원인 추적·수정",
+        "배포 롤백 원인을 Exit 137까지 추적, 방안 4개를 비용 기준으로 비교해 대응",
+        "리프레시 토큰을 서버에 저장해 유출 시 회수 가능하게 설계",
+        "EC2 앱·MySQL 컨테이너 구성 + GitHub Actions 기반 CI/CD (dev/prod 분리)",
+        "컨테이너 재배포 시 이미지가 사라지는 문제를 S3 전환으로 해결"
+      ],
+      impact: [
+        { k: "OOM 대응", v: "Exit 137 원인 추적 → Swap 2GB + 재시작 정책" },
+        { k: "배포 시간", v: "push 후 약 2~3분 자동 배포" }
+      ],
+      tech: "Java 21 · Spring Boot 3.5 · MySQL · Docker · AWS EC2/S3 · GitHub Actions",
+      linkLabel: "트러블슈팅 과정 보기 →"
+    }
+  ],
+
+  stackNote: "로고를 나열하는 대신, 실제로 어느 수준까지 다뤄봤는지 구분했습니다.",
+  stack: [
+    {
+      level: "실무 수준",
+      levelDesc: "직접 구현하고 문제를 해결해봄",
+      items: "Java, Spring Boot, Spring Data JPA, MySQL, Git"
+    },
+    {
+      level: "직접 구축·운영",
+      levelDesc: "설정하고 장애를 처리해봄",
+      items: "Docker, AWS EC2 · S3, nginx, GitHub Actions, Route 53"
+    },
+    {
+      level: "학습 중",
+      levelDesc: "현재 공부하고 있음",
+      items: "AWS SAA (VPC · ELB · Auto Scaling · RDS), Python"
+    }
+  ],
+
+  footer: {
+    copyright: "© 2026",
+    links: [
+      { label: "GitHub", href: "https://github.com/bethebestKR/AKIBA-Backend" },
+      { label: "Email", href: "mailto:vtr1844@naver.com" }
+    ]
+  }
+};
+
+/* ============================================================
+   렌더링 로직 (수정 불필요)
+   ============================================================ */
+function render(){
+  const idx = CONTENT.logo.lastIndexOf(".");
+  const [main, dot] = idx === -1 ? [CONTENT.logo, ""] : [CONTENT.logo.slice(0, idx), CONTENT.logo.slice(idx)];
+  document.getElementById("logo").innerHTML = `${main}<span>${dot}</span>`;
+
+  const navCta = document.getElementById("navCta");
+  navCta.textContent = CONTENT.navCta.label;
+  navCta.href = CONTENT.navCta.href;
+
+  const h = CONTENT.hero;
+  document.getElementById("roleLine").textContent = h.roleLine;
+  document.getElementById("heroTitle").textContent = h.title;
+  document.getElementById("heroSummary").textContent = h.summary;
+
+  document.getElementById("proofRow").innerHTML = h.proof.map(p => `
+    <div class="proof-item">
+      <div class="num">${p.num}</div>
+      <div class="cap">${p.cap}</div>
+    </div>
+  `).join("");
+
+  const cp = document.getElementById("ctaPrimary");
+  cp.textContent = h.ctaPrimary.label; cp.href = h.ctaPrimary.href;
+
+  // ctaSecondary는 실제 링크가 있을 때만 렌더한다. 없으면 버튼 자체를 만들지 않는다.
+  if (h.ctaSecondary && h.ctaSecondary.href && h.ctaSecondary.href !== "#") {
+    const cs = document.createElement("a");
+    cs.className = "btn btn-ghost";
+    cs.id = "ctaSecondary";
+    cs.textContent = h.ctaSecondary.label;
+    cs.href = h.ctaSecondary.href;
+    document.getElementById("heroCta").appendChild(cs);
+  }
+
+  document.getElementById("projectsNote").textContent = CONTENT.projectsNote;
+
+  document.getElementById("projectList").innerHTML = CONTENT.projects.map(p => `
+    <a class="card" href="projects/${p.slug}.html">
+      <div class="card-top">
+        <h3>${p.title}</h3>
+        <span class="badge">${p.badge}</span>
+      </div>
+      <div class="period">${p.period}</div>
+      <p class="desc">${p.desc}</p>
+      <div class="my-role">
+        <div class="label">내가 맡은 부분</div>
+        <ul>${p.myRole.map(r => `<li>${r}</li>`).join("")}</ul>
+      </div>
+      ${p.impact && p.impact.length ? `
+        <div class="impact-row">
+          ${p.impact.map(i => `<div class="impact"><span class="k">${i.k}</span><span class="v">${i.v}</span></div>`).join("")}
+        </div>` : ""}
+      <div class="card-bottom">
+        <div class="tech-line">${p.tech}</div>
+        <div class="card-link">${p.linkLabel}</div>
+      </div>
+    </a>
+  `).join("");
+
+  document.getElementById("stackNote").textContent = CONTENT.stackNote;
+  document.getElementById("stackGroups").innerHTML = CONTENT.stack.map(s => `
+    <div class="stack-group">
+      <div class="level">
+        <div class="t">${s.level}</div>
+        <div class="d">${s.levelDesc}</div>
+      </div>
+      <div class="items">${s.items}</div>
+    </div>
+  `).join("");
+
+  document.getElementById("copyright").textContent = CONTENT.footer.copyright;
+  document.getElementById("contactLinks").innerHTML =
+    CONTENT.footer.links.map(l => `<a href="${l.href}">${l.label}</a>`).join("");
+}
+render();
+</script>
+</body>
+</html>
