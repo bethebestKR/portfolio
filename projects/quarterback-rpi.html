@@ -565,14 +565,14 @@ function render(){
   if (CONTENT.diagrams) {
     const dg = CONTENT.diagrams;
     document.getElementById("diagramsSection").innerHTML = `
-      <h2>구조 한눈에 보기</h2>
+      <h2>구조</h2>
       <p class="dg-note">${dg.note}</p>
       <div class="dg-tabs">
         ${dg.tabs.map((t, i) => `<button class="dg-tab${i === 0 ? ' active' : ''}" data-key="${t.key}">${t.label}</button>`).join("")}
       </div>
       ${dg.tabs.map((t, i) => `
         <div class="dg-panel${i === 0 ? ' active' : ''}" data-key="${t.key}">
-          <pre class="mermaid">${t.def}</pre>
+          <pre class="mermaid">${esc(t.def)}</pre>
           <div class="dg-cap">${t.cap}</div>
         </div>`).join("")}
     `;

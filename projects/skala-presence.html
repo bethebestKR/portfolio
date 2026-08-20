@@ -298,20 +298,20 @@ const CONTENT = {
         cap: "수집 에이전트가 사내망을 arp-scan으로 훑어 로컬 SQLite에 쌓고, 증분만 Cloudflare D1로 보냅니다. 매칭·집계는 팀원 서비스 몫입니다." + LEGEND,
         def: `flowchart LR
   subgraph LAN["사내망 (L2)"]
-    PC["<b>직원 PC</b><br/>유선 · 유닛"]
+    PC["${ic('monitor',30)}<br/><b>직원 PC</b><br/>유선 · 유닛"]
   end
   subgraph AG["${ic('apple',24)} 수집 에이전트 · macOS launchd"]
     direction TB
-    SC["<b>arp-scan</b><br/>능동 ARP 스캔"] --> QC["${ic('python',34)}<br/><b>이상치·패턴 분류</b><br/>arp_pattern.py"]
+    SC["${ic('radar',30)}<br/><b>arp-scan</b><br/>능동 ARP 스캔"] --> QC["${ic('python',34)}<br/><b>이상치·패턴 분류</b><br/>arp_pattern.py"]
     QC --> LDB[("${ic('sqlite',36)}<br/><b>SQLite</b><br/>local.db")]
-    LDB --> SY["<b>증분 sync</b><br/>REST"]
+    LDB --> SY["${ic('sync',28)}<br/><b>증분 sync</b><br/>REST"]
   end
   subgraph CF["Cloudflare"]
     D1[("${ic('cloudflare',40)}<br/><b>D1</b><br/>append-only")]
   end
   PC -. ARP 응답 .-> SC
   SY -->|mac_status| D1
-  D1 --> MT["<b>팀원 서비스</b><br/>MAC↔사원 매칭 · 집계"]
+  D1 --> MT["${ic('users',30)}<br/><b>팀원 서비스</b><br/>MAC↔사원 매칭 · 집계"]
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
   class SC,QC,LDB,SY me
   style LAN fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
@@ -372,7 +372,7 @@ const CONTENT = {
 
   /* ---- 왼쪽: Overview (요약) ---- */
   overview: {
-    oneliner: "실제 자리에 앉아 일·공부하는 사람 수를 파악해(냉방 등 운영 인사이트) 위해, 사내망을 ARP로 스캔해 '지금 켜져 있는 PC'를 1분마다 수집해 Cloudflare D1로 보내는 수집 에이전트. 스캔·전송과 데이터 품질, 그리고 비용 사고 대응을 제가 맡았습니다.",
+    oneliner: "실제 자리에 앉아 일·공부하는 사람 수를 파악하기(냉방 등 운영 인사이트) 위해, 사내망을 ARP로 스캔하고 '지금 켜져 있는 PC'를 1분마다 수집해 Cloudflare D1로 보내는 수집 에이전트. 스캔·전송과 데이터 품질, 그리고 비용 사고 대응을 제가 맡았습니다.",
     did: [
       "<strong>arp-scan</strong>으로 사내망을 1분마다 스캔해 '켜진 PC' 수집",
       "<strong>SQLite → Cloudflare D1</strong> 스키마 설계 + 증분 동기화 전송",
@@ -555,14 +555,14 @@ function render(){
   if (CONTENT.diagrams) {
     const dg = CONTENT.diagrams;
     document.getElementById("diagramsSection").innerHTML = `
-      <h2>구조 한눈에 보기</h2>
+      <h2>구조</h2>
       <p class="dg-note">${dg.note}</p>
       <div class="dg-tabs">
         ${dg.tabs.map((t, i) => `<button class="dg-tab${i === 0 ? ' active' : ''}" data-key="${t.key}">${t.label}</button>`).join("")}
       </div>
       ${dg.tabs.map((t, i) => `
         <div class="dg-panel${i === 0 ? ' active' : ''}" data-key="${t.key}">
-          <pre class="mermaid">${t.def}</pre>
+          <pre class="mermaid">${esc(t.def)}</pre>
           <div class="dg-cap">${t.cap}</div>
         </div>`).join("")}
     `;
