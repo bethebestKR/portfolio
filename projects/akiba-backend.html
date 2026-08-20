@@ -77,6 +77,20 @@
 
   .divider{ height:1px; background:var(--hairline); margin:0 0 40px; }
 
+  /* ---- 다이어그램 (아키텍처 · 데이터플로우 · 시퀀스) ---- */
+  .diagrams{ margin-bottom:56px; }
+  .diagrams > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:6px; }
+  .dg-note{ font-size:15.5px; line-height:1.6; color:var(--ink-muted-80); margin-bottom:20px; max-width:760px; }
+  .dg-tabs{ display:inline-flex; gap:4px; padding:4px; background:var(--parchment); border:1px solid var(--hairline); border-radius:var(--radius-pill); margin-bottom:18px; flex-wrap:wrap; }
+  .dg-tab{ font-size:14px; font-weight:500; color:var(--ink-muted-48); padding:8px 18px; border-radius:var(--radius-pill); cursor:pointer; border:none; background:transparent; transition:color .15s ease, background .15s ease; font-family:inherit; }
+  .dg-tab:hover{ color:var(--ink); }
+  .dg-tab.active{ color:#fff; background:var(--primary); }
+  .dg-panel{ display:none; border:1px solid var(--hairline); border-radius:var(--radius-lg); background:var(--canvas); padding:26px 22px; }
+  .dg-panel.active{ display:block; }
+  .dg-panel .mermaid{ text-align:center; overflow-x:auto; min-height:40px; }
+  .dg-panel .mermaid svg{ max-width:100%; height:auto; }
+  .dg-cap{ font-size:13.5px; color:var(--ink-muted-48); text-align:center; margin-top:16px; line-height:1.6; max-width:720px; margin-left:auto; margin-right:auto; }
+
   /* ---- 2단 레이아웃: 좌 Overview(요약) / 우 문제 토글(강조) ---- */
   .work-layout{
     display:grid; grid-template-columns:340px minmax(0,1fr); gap:56px;
@@ -237,6 +251,7 @@
 <div class="wrap">
   <section class="hero" id="heroSection"></section>
   <div class="divider"></div>
+  <section class="diagrams" id="diagramsSection"></section>
   <div class="work-layout">
     <aside class="overview-pane" id="overviewPane"></aside>
     <main class="problems-pane" id="problemsPane"></main>
@@ -250,6 +265,7 @@
   <a id="footerGithub" href="#">자세한 코드는 GitHub에서 →</a>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>
 /* ============================================================
    AKIBA 백엔드 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
@@ -271,6 +287,59 @@ const CONTENT = {
     // { label: "산출물 (PDF) ↗", href: "../자료/2026-1학기%20세종창의학기제_37번팀_일본경매플랫폼.pdf", primary: false },
     { label: "내 커밋 내역", href: "https://github.com/bethebestKR/AKIBA-Backend/commits/main?author=bethebestKR", primary: false }
   ],
+
+  /* ---- 구조 다이어그램 (진입 즉시 시각화) ---- */
+  diagrams: {
+    note: "제가 맡은 인증·실시간·인프라를 세 관점으로 그렸습니다. 파란 강조는 직접 구현·운영한 부분입니다.",
+    tabs: [
+      { key: "arch", label: "아키텍처",
+        cap: "Flutter 앱 → nginx → Spring Boot(EC2) → MySQL·S3. 배포는 GitHub Actions → DockerHub → EC2로 흐릅니다.",
+        def: `flowchart LR
+  C["Flutter 앱<br/>iOS · Android"] -->|HTTPS · WSS| N
+  subgraph EC2["AWS EC2 · t3.small"]
+    N["nginx<br/>리버스 프록시 · SSL"] --> A["Spring Boot<br/>REST · STOMP"]
+    A --> DB[("MySQL<br/>db-dev · db-prod")]
+  end
+  A -->|key · URL| S3[("AWS S3<br/>업로드 이미지")]
+  A -. OAuth2 .-> O["Google · Naver"]
+  R["Route 53 · DNS"] -.-> N
+  GH["GitHub Actions"] -->|이미지 push| DH["DockerHub"] -->|pull · 배포| EC2
+  classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
+  class N,A,DB me` },
+      { key: "flow", label: "데이터플로우",
+        cap: "요청은 nginx·JWT 필터를 거쳐 계층을 통과하고, 이미지는 S3에 저장한 뒤 key·URL만 DB에 남깁니다.",
+        def: `flowchart TB
+  req["클라이언트 요청"] --> ng["nginx<br/>TLS 종료 · 프록시"]
+  ng --> jwt{"JWT 필터<br/>토큰 검증"}
+  jwt -->|유효| ctrl["Controller"]
+  jwt -->|무효| rej["401 반환"]
+  ctrl --> svc["Service"]
+  svc --> jpa["JPA · Repository"]
+  jpa --> db[("MySQL")]
+  svc -->|이미지 업로드| s3[("S3")]
+  s3 -->|key · URL 저장| db
+  classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
+  class jwt,s3 me` },
+      { key: "seq", label: "시퀀스 · 로그인",
+        cap: "소셜 로그인으로 Access·Refresh를 발급하고, Refresh만 서버에 저장해 재발급 시 대조·회수할 수 있게 했습니다.",
+        def: `sequenceDiagram
+  autonumber
+  participant C as Flutter 앱
+  participant S as Spring 서버
+  participant O as OAuth Provider
+  participant D as MySQL
+  C->>O: 소셜 로그인 요청
+  O-->>S: 인가 코드 · 프로필
+  S->>S: 사용자 조회 · 가입
+  S->>D: Refresh 토큰 저장
+  S-->>C: Access + Refresh 발급
+  Note over C,S: 액세스 만료 시
+  C->>S: Refresh로 재발급 요청
+  S->>D: 저장된 토큰과 대조
+  D-->>S: 일치 확인
+  S-->>C: 새 Access 토큰` }
+    ]
+  },
 
   /* ---- 왼쪽: Overview (요약) ---- */
   overview: {
@@ -316,7 +385,7 @@ const CONTENT = {
   problems: [
     {
       tags: ["인프라", "CI/CD"],
-      title: "전임자가 만든 배포 파이프라인을 새로 띄운 EC2로 옮겼다",
+      title: "전임자 이탈 — 배포 파이프라인을 새 EC2로 이전",
       teaser: "담당자 이탈 · 구두 인계 · 전제가 하나씩 어긋났다",
       problem: [
         "인프라를 맡던 팀원이 프로젝트를 떠났습니다. 인계는 구두로 간단히 받은 정도였고, 그 사람 계정의 EC2를 계속 쓸 수 없어 <strong>제가 EC2를 새로 띄우고 그쪽으로 옮겨야</strong> 했습니다. 파이프라인 자체는 남아 있었지만 대상 서버가 바뀌니 전제가 달라진 부분이 하나씩 드러났습니다."
@@ -340,7 +409,7 @@ const CONTENT = {
     },
     {
       tags: ["인프라", "트러블슈팅"],
-      title: "배포가 롤백됐는데 원인은 18시간 전에 죽어 있던 DB였다",
+      title: "배포 롤백 발생 — 원인은 18시간 전에 죽어 있던 DB",
       teaser: "롤백의 진짜 원인은 방금 배포한 코드가 아니었다",
       problem: [
         "GitHub Actions에서 배포 후 헬스체크가 실패해 롤백이 걸렸습니다. 배포한 코드에 변경이 크지 않아 애플리케이션 문제로 보이지 않았습니다."
@@ -363,7 +432,7 @@ const CONTENT = {
     },
     {
       tags: ["인프라", "스토리지"],
-      title: "서버를 껐다 켜니 올려둔 이미지가 모두 사라졌다",
+      title: "서버 재시작 시 업로드 이미지 전부 소실됨",
       teaser: "파일이 컨테이너 안에 있어 재배포마다 소멸",
       problem: [
         "개발 중 서버를 재시작하면 게시글에 올린 이미지가 전부 깨졌습니다. 파일이 앱 컨테이너 내부 디스크에 저장돼, 컨테이너가 새로 만들어지면 그 안의 파일도 함께 사라지는 상태였습니다."
@@ -380,7 +449,7 @@ const CONTENT = {
     },
     {
       tags: ["실시간 통신", "인프라"],
-      title: "로컬에서 되던 WebSocket이 dev 서버에서만 400으로 끊겼다",
+      title: "배포 서버에서만 WebSocket 핸드셰이크 400 발생",
       teaser: "코드는 같은데 배포 환경에서만 핸드셰이크가 400",
       problem: [
         "Flutter 클라이언트에서 <code>wss://</code>로 연결하면 핸드셰이크 단계에서 400이 떨어졌습니다. 로컬에서는 문제가 없었고 배포 서버에서만 재현돼, 코드가 같은데 환경만 다르니 서버 앞단을 의심했습니다."
@@ -398,7 +467,7 @@ const CONTENT = {
     },
     {
       tags: ["백엔드", "배포"],
-      title: "Swagger는 HTTPS로 열렸는데 요청은 HTTP로 나갔다",
+      title: "Swagger HTTPS 페이지에서 요청은 HTTP로 나가 차단됨",
       teaser: "브라우저만 막히고 Postman은 통과했다",
       problem: [
         "배포한 서버에서 Swagger UI로 API를 호출하면 요청이 막혔는데, 같은 요청을 Postman으로 보내면 정상이었습니다."
@@ -415,7 +484,7 @@ const CONTENT = {
     },
     {
       tags: ["실시간 통신", "인증"],
-      title: "STOMP CONNECT에 토큰을 실어 보냈는데 userId가 계속 null이었다",
+      title: "STOMP 토큰 검증은 통과, 세션 userId는 계속 null",
       teaser: "토큰 검증은 통과하는데 세션은 비어 있었다",
       problem: [
         "채팅 메시지를 보내면 저장이 되지 않았습니다. 핸들러에서 세션의 <code>userId</code>가 <code>null</code>로 나왔는데, 프론트는 CONNECT 프레임 헤더에 <code>Authorization: Bearer</code>를 정상적으로 실어 보내고 있었고 토큰 검증 자체도 통과하고 있었습니다."
@@ -434,7 +503,7 @@ const CONTENT = {
     },
     {
       tags: ["인증"],
-      title: "발급한 토큰을 서버가 회수할 방법이 없었다",
+      title: "발급한 JWT를 서버가 회수할 방법 없음",
       teaser: "JWT는 만료 전까지 서버가 무효화할 수 없다",
       problem: [
         "JWT는 서버가 상태를 들고 있지 않고 서명만 검증합니다. 편한 대신 한 번 발급한 토큰은 만료될 때까지 서버가 무효화할 수 없어서, 토큰이 유출됐을 때 서버가 회수할 방법이 없었습니다."
@@ -472,6 +541,46 @@ const CONTENT = {
    ============================================================ */
 const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/* Mermaid — 사이트 디자인(블루 액센트·파치먼트)으로 테마링, 탭 전환 시 지연 렌더 */
+let _mReady = false;
+function initMermaid(){
+  if (_mReady || !window.mermaid) return _mReady;
+  mermaid.initialize({
+    startOnLoad: false, securityLevel: "loose", theme: "base",
+    flowchart: { curve: "basis", padding: 14, useMaxWidth: true },
+    sequence: { useMaxWidth: true, mirrorActors: false },
+    themeVariables: {
+      fontFamily: "-apple-system, system-ui, Inter, sans-serif", fontSize: "14px",
+      primaryColor: "#f5f5f7", primaryTextColor: "#1d1d1f", primaryBorderColor: "#c9c9cf",
+      lineColor: "#8a8a8f", secondaryColor: "#eef4fb", tertiaryColor: "#ffffff",
+      clusterBkg: "#fafafa", clusterBorder: "#e0e0e0",
+      actorBkg: "#f5f5f7", actorBorder: "#c9c9cf", actorTextColor: "#1d1d1f", actorLineColor: "#c9c9cf",
+      signalColor: "#6a6a70", signalTextColor: "#1d1d1f",
+      noteBkgColor: "#eef4fb", noteBorderColor: "#c9dcf3", noteTextColor: "#0b3d75"
+    }
+  });
+  _mReady = true;
+  return true;
+}
+function renderMermaid(el){
+  if (!window.mermaid){ setTimeout(() => renderMermaid(el), 60); return; }
+  initMermaid();
+  try { mermaid.run({ nodes: [el] }); } catch (e) { console.error("mermaid", e); }
+}
+function setupDiagrams(){
+  const tabs = [...document.querySelectorAll(".dg-tab")];
+  const panels = [...document.querySelectorAll(".dg-panel")];
+  function show(key){
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.key === key));
+    panels.forEach(p => p.classList.toggle("active", p.dataset.key === key));
+    const panel = panels.find(p => p.dataset.key === key);
+    const pre = panel && panel.querySelector(".mermaid");
+    if (pre && !pre.getAttribute("data-processed")) renderMermaid(pre);
+  }
+  tabs.forEach(t => t.addEventListener("click", () => show(t.dataset.key)));
+  if (tabs.length) show(tabs[0].dataset.key);
+}
+
 function render(){
   document.getElementById("navCode").href = CONTENT.githubUrl;
   document.getElementById("footerGithub").href = CONTENT.githubUrl;
@@ -484,6 +593,23 @@ function render(){
       ${CONTENT.links.map(l => `<a class="btn ${l.primary ? 'btn-primary' : 'btn-ghost'}" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`).join("")}
     </div>
   `;
+
+  if (CONTENT.diagrams) {
+    const dg = CONTENT.diagrams;
+    document.getElementById("diagramsSection").innerHTML = `
+      <h2>구조 한눈에 보기</h2>
+      <p class="dg-note">${dg.note}</p>
+      <div class="dg-tabs">
+        ${dg.tabs.map((t, i) => `<button class="dg-tab${i === 0 ? ' active' : ''}" data-key="${t.key}">${t.label}</button>`).join("")}
+      </div>
+      ${dg.tabs.map((t, i) => `
+        <div class="dg-panel${i === 0 ? ' active' : ''}" data-key="${t.key}">
+          <pre class="mermaid">${t.def}</pre>
+          <div class="dg-cap">${t.cap}</div>
+        </div>`).join("")}
+    `;
+    setupDiagrams();
+  }
 
   const ov = CONTENT.overview;
   document.getElementById("overviewPane").innerHTML = `
