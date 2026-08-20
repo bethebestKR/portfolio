@@ -322,7 +322,7 @@ const CONTENT = {
         def: `flowchart TB
   subgraph COLLECT["수집"]
     direction TB
-    tick["1분 주기 (정각 정렬)"] --> scan["arp-scan 요청"]
+    tick["1분 주기 (정각 정렬)"] --> scan["${ic('radar',26)}<br/>arp-scan 요청"]
     scan --> resp["응답 IP · MAC 수집<br/>응답만 is_on=1"]
   end
   subgraph QUAL["품질 필터"]

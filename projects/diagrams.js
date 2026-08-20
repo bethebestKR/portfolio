@@ -30,6 +30,12 @@ function initMermaid(){
         noteBkgColor: "#eef4fb", noteBorderColor: "#c9dcf3", noteTextColor: "#0b3d75"
       }
     });
+    // ELK 첫 렌더가 간헐적으로 불안정해서(초기화 직후) 실제 다이어그램과 유사한 구조로
+    // 워밍업 렌더를 여러 번 돌려 흡수한다(subgraph + 결정노드 + 교차 엣지).
+    if (window.__elkOK) {
+      const warm = "flowchart TB\n subgraph G1[a]\n direction TB\n n1[x] --> n2{y}\n end\n subgraph G2[b]\n n3[(z)]\n end\n n2 -->|e| n3\n n2 -->|f| n1";
+      for (let i = 0; i < 3; i++) { try { await mermaid.render("dg_warm" + i, warm); } catch (e) {} }
+    }
     return true;
   })();
   return _initPromise;
@@ -41,27 +47,26 @@ function initMermaid(){
 let _renderChain = Promise.resolve();
 function renderMermaid(el){
   if (!window.mermaid){ setTimeout(() => renderMermaid(el), 60); return; }
-  if (el.getAttribute("data-processed")) return;
-  el.setAttribute("data-processed", "true");
+  if (el.getAttribute("data-processed") === "done") return; // 이미 성공
+  if (el.getAttribute("data-rendering")) return;             // 이미 큐에 있음
+  el.setAttribute("data-rendering", "true");
   const def = el.textContent;
-  const renderOnce = async () => (await mermaid.render("dg_" + Math.random().toString(36).slice(2), def)).svg;
   const isErr = (svg) => svg.includes('aria-roledescription="error"');
   _renderChain = _renderChain.then(async () => {
-    try {
-      await initMermaid();
-      await new Promise((r) => setTimeout(r, 30)); // 직전 렌더(특히 ELK)의 내부 상태가 정리될 여유
-      let svg = await renderOnce();
-      // ELK가 연속 렌더 시 간헐적으로 에러 SVG를 내는 경우가 있어 1~2회 재시도
-      for (let i = 0; i < 2 && isErr(svg); i++) {
-        await new Promise((r) => setTimeout(r, 80));
-        svg = await renderOnce();
-      }
-      el.innerHTML = svg;
-    } catch (e) {
-      el.removeAttribute("data-processed");
-      console.error("mermaid", e);
+    await initMermaid();
+    let good = null;
+    // ELK는 콜드 스타트/연속 렌더 시 예외나 에러 SVG를 간헐적으로 낸다 → 둘 다 재시도.
+    for (let i = 0; i < 4 && good === null; i++) {
+      try {
+        const { svg } = await mermaid.render("dg_" + Math.random().toString(36).slice(2), def);
+        if (!isErr(svg)) good = svg;
+      } catch (e) { /* 재시도 */ }
+      if (good === null) await new Promise((r) => setTimeout(r, 120));
     }
-  });
+    el.removeAttribute("data-rendering");
+    if (good) { el.innerHTML = good; el.setAttribute("data-processed", "done"); }
+    // 끝내 실패하면 data-processed를 안 남겨 다음 탭 클릭에서 재렌더되게 한다.
+  }).catch(() => {}); // 한 렌더의 예외가 체인 전체를 막지 않도록
 }
 
 function setupDiagrams(){
@@ -70,10 +75,12 @@ function setupDiagrams(){
   function show(key){
     tabs.forEach(t => t.classList.toggle("active", t.dataset.key === key));
     panels.forEach(p => p.classList.toggle("active", p.dataset.key === key));
+    // 클릭 시에도 렌더 시도(미완료면). 사전 렌더가 실패한 탭을 눌러 재시도할 수 있게.
     const panel = panels.find(p => p.dataset.key === key);
     const pre = panel && panel.querySelector(".mermaid");
-    if (pre && !pre.getAttribute("data-processed")) renderMermaid(pre);
+    if (pre) renderMermaid(pre);
   }
   tabs.forEach(t => t.addEventListener("click", () => show(t.dataset.key)));
   if (tabs.length) show(tabs[0].dataset.key);
+  // 나머지 탭은 클릭 시 렌더(지연). ELK가 워밍업 후 더 안정적이라, 콜드 상태의 일괄 사전 렌더는 피한다.
 }
