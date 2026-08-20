@@ -266,6 +266,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="logos.js"></script>
 <script>
 /* ============================================================
    AKIBA 백엔드 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
@@ -295,15 +296,15 @@ const CONTENT = {
       { key: "arch", label: "아키텍처",
         cap: "Flutter 앱 → nginx → Spring Boot(EC2) → MySQL·S3. 배포는 GitHub Actions → DockerHub → EC2로 흐릅니다.",
         def: `flowchart LR
-  C["Flutter 앱<br/>iOS · Android"] -->|HTTPS · WSS| N
+  C["${ic('flutter',30)}<br/>Flutter 앱<br/>iOS · Android"] -->|HTTPS · WSS| N
   subgraph EC2["AWS EC2 · t3.small"]
-    N["nginx<br/>리버스 프록시 · SSL"] --> A["Spring Boot<br/>REST · STOMP"]
-    A --> DB[("MySQL<br/>db-dev · db-prod")]
+    N["${ic('nginx',34)}<br/>nginx<br/>리버스 프록시 · SSL"] --> A["${ic('spring',30)}<br/>Spring Boot<br/>REST · STOMP"]
+    A --> DB[("${ic('mysql',28)}<br/>MySQL<br/>db-dev · db-prod")]
   end
-  A -->|key · URL| S3[("AWS S3<br/>업로드 이미지")]
-  A -. OAuth2 .-> O["Google · Naver"]
-  R["Route 53 · DNS"] -.-> N
-  GH["GitHub Actions"] -->|이미지 push| DH["DockerHub"] -->|pull · 배포| EC2
+  A -->|key · URL| S3[("${ic('aws',30)}<br/>AWS S3<br/>업로드 이미지")]
+  A -. OAuth2 .-> O["${ic('google',24)} ${ic('naver',22)}<br/>Google · Naver"]
+  R["${ic('aws',30)}<br/>Route 53 · DNS"] -.-> N
+  GH["${ic('githubactions',28)}<br/>GitHub Actions"] -->|이미지 push| DH["${ic('docker',30)}<br/>DockerHub"] -->|pull · 배포| EC2
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
   class N,A,DB me` },
       { key: "flow", label: "데이터플로우",
