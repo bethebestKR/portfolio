@@ -330,17 +330,31 @@ const CONTENT = {
       { key: "flow", label: "데이터플로우",
         cap: "요청은 nginx·JWT 필터를 거쳐 계층을 통과하고, 이미지는 S3에 저장한 뒤 key·URL만 DB에 남깁니다.",
         def: `flowchart TB
-  req["${ic('flutter',26)}<br/>클라이언트 요청"] --> ng["${ic('nginx',30)}<br/>nginx<br/>TLS 종료 · 프록시"]
-  ng --> jwt{"JWT 필터<br/>토큰 검증"}
-  jwt -->|유효| ctrl["Controller"]
-  jwt -->|무효| rej["401 반환"]
-  ctrl --> svc["Service"]
-  svc --> jpa["JPA · Repository"]
-  jpa --> db[("${ic('mysql',30)}<br/>MySQL")]
-  svc -->|이미지 업로드| s3[("${ic('awsS3',32)}<br/>S3")]
+  subgraph IN["입구 · 인증"]
+    direction TB
+    req["${ic('flutter',26)}<br/>클라이언트 요청"] --> ng["${ic('nginx',30)}<br/>nginx<br/>TLS 종료 · 프록시"]
+    ng --> jwt{"JWT 필터<br/>토큰 검증"}
+    jwt -->|무효| rej["401 반환"]
+  end
+  subgraph APP["애플리케이션 계층"]
+    direction TB
+    ctrl["Controller"] --> svc["Service"]
+    svc --> jpa["JPA · Repository"]
+  end
+  subgraph STORE["저장소"]
+    direction LR
+    db[("${ic('mysql',30)}<br/>MySQL")]
+    s3[("${ic('awsS3',32)}<br/>S3")]
+  end
+  jwt -->|유효| ctrl
+  jpa --> db
+  svc -->|이미지 업로드| s3
   s3 -->|key · URL 저장| db
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
-  class jwt,s3 me` },
+  class jwt,s3 me
+  style IN fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
+  style APP fill:#eef0f2,stroke:#d2d2d7,color:#6a6a70
+  style STORE fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "seq", label: "시퀀스 · 로그인",
         cap: "소셜 로그인으로 Access·Refresh를 발급하고, Refresh만 서버에 저장해 재발급 시 대조·회수할 수 있게 했습니다." + SEQ_LEGEND,
         def: `sequenceDiagram

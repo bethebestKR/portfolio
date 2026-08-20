@@ -320,18 +320,33 @@ const CONTENT = {
       { key: "flow", label: "데이터플로우",
         cap: "1분 주기로 ARP 응답을 모아 이상치(슬립 랩탑의 ARP offload)를 걸러내고, Realtek OUI만 '유선 PC'로 세어 증분만 D1에 upsert합니다.",
         def: `flowchart TB
-  tick["1분 주기 (정각 정렬)"] --> scan["arp-scan 요청"]
-  scan --> resp["응답 IP · MAC 수집<br/>응답만 is_on=1"]
-  resp --> oui{"OUI 00:E0:4C — 유선 직원 PC?"}
-  oui -->|아니오| drop["카운트 제외"]
-  oui -->|예| offload{"야간·주말 상시 ON — ARP offload?"}
-  offload -->|이상치| tag["방치성으로 분류"]
-  offload -->|정상| keep["실사용 신호"]
-  tag --> ldb[("${ic('sqlite',30)}<br/>SQLite local.db")]
+  subgraph COLLECT["수집"]
+    direction TB
+    tick["1분 주기 (정각 정렬)"] --> scan["arp-scan 요청"]
+    scan --> resp["응답 IP · MAC 수집<br/>응답만 is_on=1"]
+  end
+  subgraph QUAL["품질 필터"]
+    direction TB
+    oui{"OUI 00:E0:4C — 유선 직원 PC?"}
+    oui -->|아니오| drop["카운트 제외"]
+    oui -->|예| offload{"야간·주말 상시 ON — ARP offload?"}
+    offload -->|이상치| tag["방치성으로 분류"]
+    offload -->|정상| keep["실사용 신호"]
+  end
+  subgraph SYNC["저장 · 동기화"]
+    direction LR
+    ldb[("${ic('sqlite',30)}<br/>SQLite local.db")]
+    d1[("${ic('cloudflare',32)}<br/>Cloudflare D1")]
+  end
+  resp --> oui
+  tag --> ldb
   keep --> ldb
-  ldb -->|measured_at 커서 증분| d1[("${ic('cloudflare',32)}<br/>Cloudflare D1")]
+  ldb -->|measured_at 커서 증분| d1
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
-  class oui,offload,ldb me` },
+  class oui,offload,ldb me
+  style COLLECT fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
+  style QUAL fill:#eef0f2,stroke:#d2d2d7,color:#6a6a70
+  style SYNC fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "seq", label: "시퀀스 · 수집 사이클",
         cap: "한 번의 수집 사이클: 스캔 → 응답 수집 → 이상치 제거 → 로컬 저장 → 증분 커서로 D1 전송. 캐시가 아니라 매번 능동 스캔이라 STALE이 섞이지 않습니다." + SEQ_LEGEND,
         def: `sequenceDiagram

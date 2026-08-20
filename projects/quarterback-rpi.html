@@ -316,18 +316,31 @@ const CONTENT = {
   style HW fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
   style SRV fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "flow", label: "데이터플로우",
-        cap: "센서 값은 프레임 파싱·전력 계산·상태 전이를 거쳐 OCPP 큐로, 미인증 포트가 감지되면 역방향 차단 명령이 아두이노로 나갑니다.",
+        cap: "센서 값은 프레임 파싱·전력 계산·상태 전이를 거쳐 OCPP 큐로, 미인증 포트가 감지되면 역방향 차단 명령이 아두이노로 나갑니다." + LEGEND,
         def: `flowchart TB
-  s["${ic('arduino',26)}<br/>아두이노 전압·전류 측정"] --> f["시리얼 프레임<br/>! 시작 ~ @ 끝"]
-  f --> p["${ic('raspberrypi',28)}<br/>RPi 파싱<br/>숫자·소수점·공백 화이트리스트"]
-  p --> w["전력 계산 V×I<br/>100W 미만 0 처리"]
-  w --> st{"충전 상태 전이<br/>0 ↔ 양수"}
-  st -->|시작 · 주기 · 종료| q["OCPP 메시지 큐<br/>순차 · 응답대기 10초 · 재시도 3"]
-  q -->|WebSocket| be["${ic('java',26)}<br/>팀 백엔드"]
-  w -.->|케이블 감지 · 미인증| ctl["전력 차단 명령<br/>P,포트,0"]
+  subgraph SENSE["센싱 · 파싱"]
+    direction TB
+    s["${ic('arduino',26)}<br/>아두이노 전압·전류 측정"] --> f["시리얼 프레임<br/>! 시작 ~ @ 끝"]
+    f --> p["${ic('raspberrypi',28)}<br/>RPi 파싱<br/>숫자·소수점·공백 화이트리스트"]
+  end
+  subgraph PROC["가공 · 판단"]
+    direction TB
+    w["전력 계산 V×I<br/>100W 미만 0 처리"] --> st{"충전 상태 전이<br/>0 ↔ 양수"}
+    ctl["전력 차단 명령<br/>P,포트,0"]
+  end
+  subgraph SEND["전송"]
+    direction TB
+    q["OCPP 메시지 큐<br/>순차 · 응답대기 10초 · 재시도 3"] -->|WebSocket| be["${ic('java',26)}<br/>팀 백엔드"]
+  end
+  p --> w
+  st -->|시작 · 주기 · 종료| q
+  w -.->|케이블 감지 · 미인증| ctl
   ctl -.->|시리얼 역방향| s
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
-  class p,q,ctl me` },
+  class p,q,ctl me
+  style SENSE fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
+  style PROC fill:#eef0f2,stroke:#d2d2d7,color:#6a6a70
+  style SEND fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "seq", label: "시퀀스 · OCPP 트랜잭션",
         cap: "연결 확립 후 Heartbeat로 유지하고, 케이블 연결→Started로 서버가 준 transactionId에 동기화, 주기 Updated 뒤 분리 시 Ended로 마무리합니다." + SEQ_LEGEND,
         def: `sequenceDiagram
