@@ -35,13 +35,32 @@ function initMermaid(){
   return _initPromise;
 }
 
-/* 렌더 직렬화 큐 — 동시에 여러 mermaid.run이 도는 것을 막는다 */
+/* 렌더 직렬화 큐 — 동시에 여러 렌더가 도는 것을 막는다.
+   mermaid.render(오프스크린→SVG 주입)를 써서 패널 가시성(display:none)과 무관하게 렌더된다
+   (빠른 탭 전환으로 렌더 도중 패널이 숨겨져도 레이아웃 실패가 나지 않음). */
 let _renderChain = Promise.resolve();
 function renderMermaid(el){
   if (!window.mermaid){ setTimeout(() => renderMermaid(el), 60); return; }
+  if (el.getAttribute("data-processed")) return;
+  el.setAttribute("data-processed", "true");
+  const def = el.textContent;
+  const renderOnce = async () => (await mermaid.render("dg_" + Math.random().toString(36).slice(2), def)).svg;
+  const isErr = (svg) => svg.includes('aria-roledescription="error"');
   _renderChain = _renderChain.then(async () => {
-    try { await initMermaid(); await mermaid.run({ nodes: [el] }); }
-    catch (e) { console.error("mermaid", e); }
+    try {
+      await initMermaid();
+      await new Promise((r) => setTimeout(r, 30)); // 직전 렌더(특히 ELK)의 내부 상태가 정리될 여유
+      let svg = await renderOnce();
+      // ELK가 연속 렌더 시 간헐적으로 에러 SVG를 내는 경우가 있어 1~2회 재시도
+      for (let i = 0; i < 2 && isErr(svg); i++) {
+        await new Promise((r) => setTimeout(r, 80));
+        svg = await renderOnce();
+      }
+      el.innerHTML = svg;
+    } catch (e) {
+      el.removeAttribute("data-processed");
+      console.error("mermaid", e);
+    }
   });
 }
 
