@@ -77,6 +77,20 @@
 
   .divider{ height:1px; background:var(--hairline); margin:0 0 40px; }
 
+  /* ---- 다이어그램 (아키텍처 · 데이터플로우 · 시퀀스) ---- */
+  .diagrams{ margin-bottom:56px; }
+  .diagrams > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:6px; }
+  .dg-note{ font-size:15.5px; line-height:1.6; color:var(--ink-muted-80); margin-bottom:20px; max-width:760px; }
+  .dg-tabs{ display:inline-flex; gap:4px; padding:4px; background:var(--parchment); border:1px solid var(--hairline); border-radius:var(--radius-pill); margin-bottom:18px; flex-wrap:wrap; }
+  .dg-tab{ font-size:14px; font-weight:500; color:var(--ink-muted-48); padding:8px 18px; border-radius:var(--radius-pill); cursor:pointer; border:none; background:transparent; transition:color .15s ease, background .15s ease; font-family:inherit; }
+  .dg-tab:hover{ color:var(--ink); }
+  .dg-tab.active{ color:#fff; background:var(--primary); }
+  .dg-panel{ display:none; border:1px solid var(--hairline); border-radius:var(--radius-lg); background:var(--canvas); padding:26px 22px; }
+  .dg-panel.active{ display:block; }
+  .dg-panel .mermaid{ text-align:center; overflow-x:auto; min-height:40px; }
+  .dg-panel .mermaid svg{ max-width:100%; height:auto; }
+  .dg-cap{ font-size:13.5px; color:var(--ink-muted-48); text-align:center; margin-top:16px; line-height:1.6; max-width:720px; margin-left:auto; margin-right:auto; }
+
   /* ---- 2단 레이아웃: 좌 Overview(요약) / 우 문제 토글(강조) ---- */
   .work-layout{
     display:grid; grid-template-columns:340px minmax(0,1fr); gap:56px;
@@ -237,6 +251,7 @@
 <div class="wrap">
   <section class="hero" id="heroSection"></section>
   <div class="divider"></div>
+  <section class="diagrams" id="diagramsSection"></section>
   <div class="work-layout">
     <aside class="overview-pane" id="overviewPane"></aside>
     <main class="problems-pane" id="problemsPane"></main>
@@ -250,6 +265,7 @@
   <a id="footerGithub" href="#">자세한 코드는 GitHub에서 →</a>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>
 /* ============================================================
    QuarterBack 라즈베리파이 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
@@ -269,6 +285,67 @@ const CONTENT = {
     { label: "GitHub 코드 보기 →", href: "https://github.com/Capstone-QuarterBack/rasberyPi", primary: true },
     { label: "핵심 코드 (gui_client.py)", href: "https://github.com/Capstone-QuarterBack/rasberyPi/blob/main/gui_client.py", primary: false }
   ],
+
+  /* ---- 구조 다이어그램 (진입 즉시 시각화) ---- */
+  diagrams: {
+    note: "제가 단독으로 맡은 하드웨어→백엔드 신호 전달 체인을 세 관점으로 그렸습니다. 파란 강조는 직접 구현한 라즈베리파이·아두이노 체인입니다.",
+    tabs: [
+      { key: "arch", label: "아키텍처",
+        cap: "아두이노(센싱·릴레이) ↔ 라즈베리파이(파싱·OCPP 클라이언트) ↔ 팀 백엔드(OCPP 서버). 시리얼은 양방향, 백엔드는 WebSocket으로 붙습니다.",
+        def: `flowchart LR
+  subgraph HW["충전기 하드웨어 · 본인 담당"]
+    ARD["아두이노<br/>전압·전류 센싱 · 릴레이"]
+    RPI["라즈베리파이<br/>Python · asyncio 게이트웨이"]
+    ARD -->|시리얼 UART · 2400 baud| RPI
+    RPI -->|P,포트,0/1 전력 제어| ARD
+  end
+  RPI <-->|WebSocket · OCPP 2.0.1| BE["팀 백엔드<br/>Java OCPP 서버 · /ocpp"]
+  BE --> FE["프론트<br/>TypeScript"]
+  GUI["tkinter GUI<br/>로컬 상태 확인"] -.-> RPI
+  classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
+  class ARD,RPI me` },
+      { key: "flow", label: "데이터플로우",
+        cap: "센서 값은 프레임 파싱·전력 계산·상태 전이를 거쳐 OCPP 큐로, 미인증 포트가 감지되면 역방향 차단 명령이 아두이노로 나갑니다.",
+        def: `flowchart TB
+  s["아두이노 전압·전류 측정"] --> f["시리얼 프레임<br/>! 시작 ~ @ 끝"]
+  f --> p["RPi 파싱<br/>숫자·소수점·공백 화이트리스트"]
+  p --> w["전력 계산 V×I<br/>100W 미만 0 처리"]
+  w --> st{"충전 상태 전이<br/>0 ↔ 양수"}
+  st -->|시작 · 주기 · 종료| q["OCPP 메시지 큐<br/>순차 · 응답대기 10초 · 재시도 3"]
+  q -->|WebSocket| be["팀 백엔드"]
+  w -.->|케이블 감지 · 미인증| ctl["전력 차단 명령<br/>P,포트,0"]
+  ctl -.->|시리얼 역방향| s
+  classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
+  class p,q,ctl me` },
+      { key: "seq", label: "시퀀스 · OCPP 트랜잭션",
+        cap: "연결 확립 후 Heartbeat로 유지하고, 케이블 연결→Started로 서버가 준 transactionId에 동기화, 주기 Updated 뒤 분리 시 Ended로 마무리합니다.",
+        def: `sequenceDiagram
+  autonumber
+  participant A as 아두이노
+  participant R as 라즈베리파이
+  participant B as 팀 백엔드
+  Note over R,B: 연결 확립
+  R->>B: BootNotification
+  B-->>R: 승인
+  loop 60초 주기
+    R->>B: Heartbeat
+  end
+  Note over A,B: 충전 트랜잭션
+  A->>R: 전압 감지 · 케이블 연결
+  R->>B: TransactionEvent Started (CablePluggedIn)
+  B-->>R: transactionId 응답
+  R->>R: transactionId 동기화
+  R->>A: P,포트,1 · 전력 공급
+  loop 충전 중
+    A->>R: 전압 · 전류
+    R->>B: TransactionEvent Updated (MeterValues)
+    B-->>R: 수신완료
+  end
+  A->>R: 전력 0 · 분리
+  R->>B: TransactionEvent Ended (EVDisconnected)
+  R->>A: P,포트,0 · 전력 차단` }
+    ]
+  },
 
   /* ---- 왼쪽: Overview (요약) ---- */
   overview: {
@@ -311,7 +388,7 @@ const CONTENT = {
   problems: [
     {
       tags: ["신뢰성", "메시지 큐"],
-      title: "연결이 불안정해서 메시지가 유실되면 결제·기록이 틀어졌다",
+      title: "연결 불안정 시 메시지 유실 → 결제·기록 틀어짐",
       teaser: "그냥 send만 하면 못 받은 이벤트가 조용히 사라진다",
       problem: [
         "소켓이 끊기거나 응답이 안 오는데 그냥 <code>send</code>만 하면, 백엔드가 못 받은 트랜잭션 이벤트가 조용히 사라집니다. <strong>충전 기록에서는 이게 곧 데이터 손실</strong>입니다."
@@ -335,7 +412,7 @@ const CONTENT = {
     },
     {
       tags: ["양방향 제어", "안전"],
-      title: "케이블은 꽂혔는데 인증이 안 된 포트에 전기가 흐르면 안 됐다",
+      title: "케이블 연결됐으나 미인증 포트 통전은 차단돼야 함",
       teaser: "라즈베리파이가 감지만 해선 부족하고, 하드웨어를 막아야 했다",
       problem: [
         "전압이 감지되면 케이블 연결은 확인되지만, 아직 인증/충전 시작 전인 포트에 전력이 흐르면 안전 문제입니다. 라즈베리파이가 <strong>감지만 해서는 부족하고 하드웨어를 막아야</strong> 했습니다."
@@ -355,7 +432,7 @@ const CONTENT = {
     },
     {
       tags: ["연결", "WebSocket"],
-      title: "라즈베리파이를 처음 받았을 때, 코드를 어떻게 올려 백엔드에 붙이는지부터 막혔다",
+      title: "라즈베리파이 수령 직후 백엔드 연결 확립부터 막힘",
       teaser: "연결 콜백 인자 개수 하나 때문에 계속 튕겼다",
       problem: [
         "하드웨어(라즈베리파이+아두이노)를 받았지만, 여기에 무엇을 어떻게 코딩해 넣어 백엔드와 통신시키는지부터 몰랐습니다. 충전 로직을 짜기 전에 <strong>연결을 세우는 것 자체가 첫 관문</strong>이었습니다."
@@ -380,7 +457,7 @@ const CONTENT = {
     },
     {
       tags: ["시리얼", "신호 파싱"],
-      title: "아두이노가 시리얼로 흘려보내는 전기 신호를 라즈베리파이에서 파싱했다",
+      title: "프레임 경계·노이즈 섞인 아두이노 시리얼 스트림 파싱 필요",
       teaser: "프레임 경계도 없고 노이즈 문자도 섞인 생 스트림",
       problem: [
         "충전기에 연결된 아두이노가 2400 baud로 전압·전류 값을 끊임없이 흘리는데, 스트림에는 <strong>프레임 경계도 없고 노이즈 문자도 섞입니다.</strong> 어디부터 어디까지가 한 묶음인지부터 잡아야 했습니다."
@@ -404,7 +481,7 @@ const CONTENT = {
     },
     {
       tags: ["OCPP", "프로토콜"],
-      title: "측정값을 그냥 던지지 않고, 백엔드가 기대하는 OCPP 트랜잭션 흐름에 맞췄다",
+      title: "단발 전력값으로는 충전 세션 식별 불가 → OCPP 트랜잭션화",
       teaser: "전력값만 단발로 보내면 어느 충전 세션인지 못 엮는다",
       problem: [
         "백엔드는 OCPP 2.0.1 규격(TransactionEvent <code>Started</code>→<code>Updated</code>→<code>Ended</code>, <code>transactionId</code>, <code>seqNo</code>)을 기대합니다. 전력값만 단발로 보내면 <strong>백엔드가 어느 충전 세션의 값인지 엮지 못합니다.</strong>"
@@ -442,6 +519,46 @@ const CONTENT = {
    ============================================================ */
 const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/* Mermaid — 사이트 디자인(블루 액센트·파치먼트)으로 테마링, 탭 전환 시 지연 렌더 */
+let _mReady = false;
+function initMermaid(){
+  if (_mReady || !window.mermaid) return _mReady;
+  mermaid.initialize({
+    startOnLoad: false, securityLevel: "loose", theme: "base",
+    flowchart: { curve: "basis", padding: 14, useMaxWidth: true },
+    sequence: { useMaxWidth: true, mirrorActors: false },
+    themeVariables: {
+      fontFamily: "-apple-system, system-ui, Inter, sans-serif", fontSize: "14px",
+      primaryColor: "#f5f5f7", primaryTextColor: "#1d1d1f", primaryBorderColor: "#c9c9cf",
+      lineColor: "#8a8a8f", secondaryColor: "#eef4fb", tertiaryColor: "#ffffff",
+      clusterBkg: "#fafafa", clusterBorder: "#e0e0e0",
+      actorBkg: "#f5f5f7", actorBorder: "#c9c9cf", actorTextColor: "#1d1d1f", actorLineColor: "#c9c9cf",
+      signalColor: "#6a6a70", signalTextColor: "#1d1d1f",
+      noteBkgColor: "#eef4fb", noteBorderColor: "#c9dcf3", noteTextColor: "#0b3d75"
+    }
+  });
+  _mReady = true;
+  return true;
+}
+function renderMermaid(el){
+  if (!window.mermaid){ setTimeout(() => renderMermaid(el), 60); return; }
+  initMermaid();
+  try { mermaid.run({ nodes: [el] }); } catch (e) { console.error("mermaid", e); }
+}
+function setupDiagrams(){
+  const tabs = [...document.querySelectorAll(".dg-tab")];
+  const panels = [...document.querySelectorAll(".dg-panel")];
+  function show(key){
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.key === key));
+    panels.forEach(p => p.classList.toggle("active", p.dataset.key === key));
+    const panel = panels.find(p => p.dataset.key === key);
+    const pre = panel && panel.querySelector(".mermaid");
+    if (pre && !pre.getAttribute("data-processed")) renderMermaid(pre);
+  }
+  tabs.forEach(t => t.addEventListener("click", () => show(t.dataset.key)));
+  if (tabs.length) show(tabs[0].dataset.key);
+}
+
 function render(){
   document.getElementById("navCode").href = CONTENT.githubUrl;
   document.getElementById("footerGithub").href = CONTENT.githubUrl;
@@ -454,6 +571,23 @@ function render(){
       ${CONTENT.links.map(l => `<a class="btn ${l.primary ? 'btn-primary' : 'btn-ghost'}" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`).join("")}
     </div>
   `;
+
+  if (CONTENT.diagrams) {
+    const dg = CONTENT.diagrams;
+    document.getElementById("diagramsSection").innerHTML = `
+      <h2>구조 한눈에 보기</h2>
+      <p class="dg-note">${dg.note}</p>
+      <div class="dg-tabs">
+        ${dg.tabs.map((t, i) => `<button class="dg-tab${i === 0 ? ' active' : ''}" data-key="${t.key}">${t.label}</button>`).join("")}
+      </div>
+      ${dg.tabs.map((t, i) => `
+        <div class="dg-panel${i === 0 ? ' active' : ''}" data-key="${t.key}">
+          <pre class="mermaid">${t.def}</pre>
+          <div class="dg-cap">${t.cap}</div>
+        </div>`).join("")}
+    `;
+    setupDiagrams();
+  }
 
   const ov = CONTENT.overview;
   document.getElementById("overviewPane").innerHTML = `

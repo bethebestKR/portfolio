@@ -76,6 +76,20 @@
 
   .divider{ height:1px; background:var(--hairline); margin:0 0 40px; }
 
+  /* ---- 다이어그램 (아키텍처 · 데이터플로우 · 시퀀스) ---- */
+  .diagrams{ margin-bottom:56px; }
+  .diagrams > h2{ font-size:28px; font-weight:600; letter-spacing:-0.5px; margin-bottom:6px; }
+  .dg-note{ font-size:15.5px; line-height:1.6; color:var(--ink-muted-80); margin-bottom:20px; max-width:760px; }
+  .dg-tabs{ display:inline-flex; gap:4px; padding:4px; background:var(--parchment); border:1px solid var(--hairline); border-radius:var(--radius-pill); margin-bottom:18px; flex-wrap:wrap; }
+  .dg-tab{ font-size:14px; font-weight:500; color:var(--ink-muted-48); padding:8px 18px; border-radius:var(--radius-pill); cursor:pointer; border:none; background:transparent; transition:color .15s ease, background .15s ease; font-family:inherit; }
+  .dg-tab:hover{ color:var(--ink); }
+  .dg-tab.active{ color:#fff; background:var(--primary); }
+  .dg-panel{ display:none; border:1px solid var(--hairline); border-radius:var(--radius-lg); background:var(--canvas); padding:26px 22px; }
+  .dg-panel.active{ display:block; }
+  .dg-panel .mermaid{ text-align:center; overflow-x:auto; min-height:40px; }
+  .dg-panel .mermaid svg{ max-width:100%; height:auto; }
+  .dg-cap{ font-size:13.5px; color:var(--ink-muted-48); text-align:center; margin-top:16px; line-height:1.6; max-width:720px; margin-left:auto; margin-right:auto; }
+
   /* ---- 2단 레이아웃: 좌 Overview(요약) / 우 문제 토글(강조) ---- */
   .work-layout{
     display:grid; grid-template-columns:340px minmax(0,1fr); gap:56px;
@@ -239,6 +253,7 @@
 <div class="wrap">
   <section class="hero" id="heroSection"></section>
   <div class="divider"></div>
+  <section class="diagrams" id="diagramsSection"></section>
   <div class="work-layout">
     <aside class="overview-pane" id="overviewPane"></aside>
     <main class="problems-pane" id="problemsPane"></main>
@@ -252,6 +267,7 @@
   <span class="foot-note" id="footNote"></span>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>
 /* ============================================================
    SKALA 재실 측정 수집 에이전트 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
@@ -270,6 +286,62 @@ const CONTENT = {
   title: "SKALA 재실 측정 — 사내망을 ARP로 스캔해 '켜진 PC'를 세는 수집 에이전트",
   meta: "SKALA · 사내 재실 측정 수집 에이전트(scan/sync) 담당 · 데이터 품질·비용 사고 대응",
   repoNote: "이 프로젝트는 <strong>사내망 인프라</strong>(대역·기기·D1 접속정보)를 다뤄 저장소를 비공개로 유지합니다. 아래 내용은 민감정보를 뺀 접근·판단 과정만 정리한 것입니다.",
+
+  /* ---- 구조 다이어그램 (진입 즉시 시각화) ----
+     ⚠️ 보안: 사내 IP·D1 database ID·토큰·실명은 넣지 않는다. 일반 명칭만 사용. */
+  diagrams: {
+    note: "제가 맡은 수집(scan/sync)·데이터 품질을 세 관점으로 그렸습니다. 파란 강조는 직접 구현·대응한 부분입니다.",
+    tabs: [
+      { key: "arch", label: "아키텍처",
+        cap: "수집 에이전트가 사내망을 arp-scan으로 훑어 로컬 SQLite에 쌓고, 증분만 Cloudflare D1로 보냅니다. 매칭·집계는 팀원 서비스 몫입니다.",
+        def: `flowchart LR
+  subgraph LAN["사내망 (L2)"]
+    PC["직원 PC · 유선/유닛"]
+  end
+  subgraph AG["수집 에이전트 (macOS · launchd)"]
+    SC["arp-scan<br/>능동 ARP 스캔"] --> QC["이상치·패턴 분류<br/>arp_pattern.py"]
+    QC --> LDB[("SQLite<br/>local.db")]
+    LDB --> SY["증분 sync<br/>REST"]
+  end
+  PC -. ARP 응답 .-> SC
+  SY -->|append-only mac_status| D1[("Cloudflare D1")]
+  D1 --> MT["팀원: MAC↔사원 매칭 · 집계"]
+  classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
+  class SC,QC,LDB,SY me` },
+      { key: "flow", label: "데이터플로우",
+        cap: "1분 주기로 ARP 응답을 모아 이상치(슬립 랩탑의 ARP offload)를 걸러내고, Realtek OUI만 '유선 PC'로 세어 증분만 D1에 upsert합니다.",
+        def: `flowchart TB
+  tick["1분 주기 (정각 정렬)"] --> scan["arp-scan 요청"]
+  scan --> resp["응답 IP · MAC 수집<br/>응답만 is_on=1"]
+  resp --> oui{"OUI 00:E0:4C — 유선 직원 PC?"}
+  oui -->|아니오| drop["카운트 제외"]
+  oui -->|예| offload{"야간·주말 상시 ON — ARP offload?"}
+  offload -->|이상치| tag["방치성으로 분류"]
+  offload -->|정상| keep["실사용 신호"]
+  tag --> ldb[("SQLite local.db")]
+  keep --> ldb
+  ldb -->|measured_at 커서 증분| d1[("Cloudflare D1")]
+  classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
+  class oui,offload,ldb me` },
+      { key: "seq", label: "시퀀스 · 수집 사이클",
+        cap: "한 번의 수집 사이클: 스캔 → 응답 수집 → 이상치 제거 → 로컬 저장 → 증분 커서로 D1 전송. 캐시가 아니라 매번 능동 스캔이라 STALE이 섞이지 않습니다.",
+        def: `sequenceDiagram
+  autonumber
+  participant T as launchd (1분)
+  participant A as 수집 에이전트
+  participant N as 사내망 (ARP)
+  participant L as SQLite local.db
+  participant D as Cloudflare D1
+  T->>A: 주기 실행 트리거
+  A->>N: arp-scan 능동 스캔
+  N-->>A: 응답 IP · MAC (현재 켜진 기기)
+  A->>A: Realtek OUI 필터 · 이상치 분류
+  A->>L: is_on=1 행 기록 (append-only)
+  Note over A,D: 전체 재조회 대신 증분만
+  A->>D: measured_at 커서 이후만 sync
+  D-->>A: upsert 완료` }
+    ]
+  },
 
   /* ---- 왼쪽: Overview (요약) ---- */
   overview: {
@@ -310,7 +382,7 @@ const CONTENT = {
   problems: [
     {
       tags: ["접근 전환", "ARP"],
-      title: "핑에 응답이 안 왔다 — 그런데 '핑을 보낸다는 것 자체'가 단서였다",
+      title: "방화벽이 ICMP 차단 — 핑 대신 ARP로 재실 신호 전환",
       teaser: "방화벽이 핑 응답을 막았지만, 핑을 쏘려면 그 전에 반드시 일어나는 일이 있었다",
       problem: [
         "목표는 사내에서 <strong>실제 자리에 앉아 있는 사람 수</strong>를 파악하는 것이었습니다. 가장 직관적인 출발은 \"살아있는 기기면 핑에 답하겠지\"였는데, <strong>방화벽이 ICMP(핑)를 막아 응답이 오지 않아</strong> 첫걸음부터 막혔습니다."
@@ -333,7 +405,7 @@ const CONTENT = {
     },
     {
       tags: ["데이터 품질", "이상치"],
-      title: "새벽·주말에도 '켜져 있음'으로 잡히는 기기가 절반 — 사람은 없는데 왜",
+      title: "새벽·주말에도 '켜짐'으로 잡히는 방치성 기기 절반 발생",
       teaser: "ARP on = 기기가 살아있음이지, 사람이 쓰는 중이 아니었다",
       problem: [
         "ARP로 켜진 기기를 잡기 시작하니, 이번엔 <strong>데이터에 이상치가 쏟아졌습니다.</strong> 사무실에 아무도 없어야 할 새벽 0~1시와 주말 내내 '켜져 있음'으로 잡히는 기기가 대량이었고, 매시간 규칙적으로 <strong>~60분 on → ~15분 off를 반복하는 톱니 패턴</strong>이 하루 종일 이어졌습니다. 이대로 \"켜진 시간 = 사용 시간\"으로 집계하면 재실이 크게 과대집계됩니다."
@@ -358,7 +430,7 @@ const CONTENT = {
     },
     {
       tags: ["운영 사고", "비용"],
-      title: "D1 read가 45억 건을 넘겨 $33이 청구되고, 3일을 멈췄다",
+      title: "D1 read 45억 건 초과로 $33 과금·3일 중단 발생",
       teaser: "내 수집 코드는 read를 거의 안 쓰는데 read 비용이 폭발했다",
       problem: [
         "Cloudflare D1의 <strong>read 사용량이 45억(45B) 행을 초과</strong>해 $33이 청구됐고, 이 문제로 <strong>최근 3일간 작업을 멈췄습니다.</strong> 그런데 제 에이전트(scan/sync)는 <code>mac_status</code>에 <strong>write만</strong> 하고, read는 <code>sync.py</code>의 가벼운 두 개(<code>ORDER BY id DESC LIMIT 1</code> 등)뿐이라 여기서 나올 양이 전혀 아니었습니다."
@@ -385,7 +457,7 @@ const CONTENT = {
     },
     {
       tags: ["원인 추적", "네트워크"],
-      title: "ARP 테이블에 앞자리가 똑같은 MAC이 300개 넘게 떴다",
+      title: "ARP 테이블에 동일 OUI MAC 300개 넘게 검출됨",
       teaser: "맥북 자체의 MAC인 줄 알았는데, 정체가 달랐다",
       problem: [
         "ARP로 방향을 잡은 뒤 테이블을 까보니, 앞 3바이트(OUI)가 <code>00:E0:4C</code>로 똑같은 MAC이 <strong>300대 이상</strong> 떴습니다. 이게 무엇인지 모르면 애초에 <strong>\"무엇을 카운트할지\"를 정의할 수 없었습니다.</strong>"
@@ -404,7 +476,7 @@ const CONTENT = {
     },
     {
       tags: ["데이터 품질", "도구 선택"],
-      title: "캐시를 읽었더니 죽은 기기·빈 응답이 섞여 있었다",
+      title: "arp -a 캐시에 STALE·빈 응답 혼입으로 유령 카운트 발생",
       teaser: "\"IP를 안다 = 거기 기기가 있다\"가 항상 참은 아니었다",
       problem: [
         "ARP <strong>캐시</strong>를 읽어 세는 방식으로 갔더니 쓰레기가 섞였습니다 — 응답 없는 빈 엔트리(<code>incomplete</code>)와, 기기가 꺼진 뒤에도 남는 죽은 엔트리(<code>STALE</code>). 캐시는 <strong>과거의 흔적</strong>도 들고 있어서 현재 재실 카운트가 부풀었습니다."
@@ -441,6 +513,46 @@ const CONTENT = {
    ============================================================ */
 const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/* Mermaid — 사이트 디자인(블루 액센트·파치먼트)으로 테마링, 탭 전환 시 지연 렌더 */
+let _mReady = false;
+function initMermaid(){
+  if (_mReady || !window.mermaid) return _mReady;
+  mermaid.initialize({
+    startOnLoad: false, securityLevel: "loose", theme: "base",
+    flowchart: { curve: "basis", padding: 14, useMaxWidth: true },
+    sequence: { useMaxWidth: true, mirrorActors: false },
+    themeVariables: {
+      fontFamily: "-apple-system, system-ui, Inter, sans-serif", fontSize: "14px",
+      primaryColor: "#f5f5f7", primaryTextColor: "#1d1d1f", primaryBorderColor: "#c9c9cf",
+      lineColor: "#8a8a8f", secondaryColor: "#eef4fb", tertiaryColor: "#ffffff",
+      clusterBkg: "#fafafa", clusterBorder: "#e0e0e0",
+      actorBkg: "#f5f5f7", actorBorder: "#c9c9cf", actorTextColor: "#1d1d1f", actorLineColor: "#c9c9cf",
+      signalColor: "#6a6a70", signalTextColor: "#1d1d1f",
+      noteBkgColor: "#eef4fb", noteBorderColor: "#c9dcf3", noteTextColor: "#0b3d75"
+    }
+  });
+  _mReady = true;
+  return true;
+}
+function renderMermaid(el){
+  if (!window.mermaid){ setTimeout(() => renderMermaid(el), 60); return; }
+  initMermaid();
+  try { mermaid.run({ nodes: [el] }); } catch (e) { console.error("mermaid", e); }
+}
+function setupDiagrams(){
+  const tabs = [...document.querySelectorAll(".dg-tab")];
+  const panels = [...document.querySelectorAll(".dg-panel")];
+  function show(key){
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.key === key));
+    panels.forEach(p => p.classList.toggle("active", p.dataset.key === key));
+    const panel = panels.find(p => p.dataset.key === key);
+    const pre = panel && panel.querySelector(".mermaid");
+    if (pre && !pre.getAttribute("data-processed")) renderMermaid(pre);
+  }
+  tabs.forEach(t => t.addEventListener("click", () => show(t.dataset.key)));
+  if (tabs.length) show(tabs[0].dataset.key);
+}
+
 function render(){
   document.getElementById("footNote").textContent = "사내 인프라라 저장소는 비공개입니다.";
 
@@ -450,6 +562,23 @@ function render(){
     <div class="meta">${CONTENT.meta}</div>
     <div class="repo-note">${CONTENT.repoNote}</div>
   `;
+
+  if (CONTENT.diagrams) {
+    const dg = CONTENT.diagrams;
+    document.getElementById("diagramsSection").innerHTML = `
+      <h2>구조 한눈에 보기</h2>
+      <p class="dg-note">${dg.note}</p>
+      <div class="dg-tabs">
+        ${dg.tabs.map((t, i) => `<button class="dg-tab${i === 0 ? ' active' : ''}" data-key="${t.key}">${t.label}</button>`).join("")}
+      </div>
+      ${dg.tabs.map((t, i) => `
+        <div class="dg-panel${i === 0 ? ' active' : ''}" data-key="${t.key}">
+          <pre class="mermaid">${t.def}</pre>
+          <div class="dg-cap">${t.cap}</div>
+        </div>`).join("")}
+    `;
+    setupDiagrams();
+  }
 
   const ov = CONTENT.overview;
   document.getElementById("overviewPane").innerHTML = `
