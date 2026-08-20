@@ -292,28 +292,37 @@ const CONTENT = {
     note: "제가 단독으로 맡은 하드웨어→백엔드 신호 전달 체인을 세 관점으로 그렸습니다. 파란 강조는 직접 구현한 라즈베리파이·아두이노 체인입니다.",
     tabs: [
       { key: "arch", label: "아키텍처",
-        cap: "아두이노(센싱·릴레이) ↔ 라즈베리파이(파싱·OCPP 클라이언트) ↔ 팀 백엔드(OCPP 서버). 시리얼은 양방향, 백엔드는 WebSocket으로 붙습니다.",
+        cap: "아두이노(센싱·릴레이) ↔ 라즈베리파이(파싱·OCPP 클라이언트) ↔ 팀 백엔드(OCPP 서버). 시리얼은 양방향, 백엔드는 WebSocket으로 붙습니다." + LEGEND,
         def: `flowchart LR
   subgraph HW["충전기 하드웨어 · 본인 담당"]
-    ARD["${ic('arduino',42)}<br/>아두이노<br/>전압·전류 센싱 · 릴레이"]
-    RPI["${ic('raspberrypi',42)}<br/>라즈베리파이<br/>Python · asyncio 게이트웨이"]
+    direction TB
+    ARD["${ic('arduino',40)}<br/><b>아두이노</b><br/>전압·전류 센싱 · 릴레이"]
+    RPI["${ic('raspberrypi',40)}<br/><b>라즈베리파이</b><br/>Python · asyncio 게이트웨이"]
+    GUI["${ic('python',32)}<br/><b>tkinter GUI</b><br/>로컬 상태 확인"]
     ARD -->|시리얼 UART · 2400 baud| RPI
     RPI -->|P,포트,0/1 전력 제어| ARD
+    GUI -.-> RPI
   end
-  RPI <-->|WebSocket · OCPP 2.0.1| BE["${ic('java',40)}<br/>팀 백엔드<br/>Java OCPP 서버 · /ocpp"]
-  BE --> FE["${ic('typescript',38)}<br/>프론트<br/>TypeScript"]
-  GUI["${ic('python',38)}<br/>tkinter GUI<br/>로컬 상태 확인"] -.-> RPI
+  subgraph SRV["팀 서버 · 클라이언트"]
+    direction TB
+    BE["${ic('java',38)}<br/><b>팀 백엔드</b><br/>Java OCPP 서버 · /ocpp"]
+    FE["${ic('typescript',36)}<br/><b>프론트</b><br/>TypeScript"]
+    BE --> FE
+  end
+  RPI <-->|WebSocket · OCPP 2.0.1| BE
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
-  class ARD,RPI me` },
+  class ARD,RPI me
+  style HW fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
+  style SRV fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "flow", label: "데이터플로우",
         cap: "센서 값은 프레임 파싱·전력 계산·상태 전이를 거쳐 OCPP 큐로, 미인증 포트가 감지되면 역방향 차단 명령이 아두이노로 나갑니다.",
         def: `flowchart TB
-  s["아두이노 전압·전류 측정"] --> f["시리얼 프레임<br/>! 시작 ~ @ 끝"]
-  f --> p["RPi 파싱<br/>숫자·소수점·공백 화이트리스트"]
+  s["${ic('arduino',26)}<br/>아두이노 전압·전류 측정"] --> f["시리얼 프레임<br/>! 시작 ~ @ 끝"]
+  f --> p["${ic('raspberrypi',28)}<br/>RPi 파싱<br/>숫자·소수점·공백 화이트리스트"]
   p --> w["전력 계산 V×I<br/>100W 미만 0 처리"]
   w --> st{"충전 상태 전이<br/>0 ↔ 양수"}
   st -->|시작 · 주기 · 종료| q["OCPP 메시지 큐<br/>순차 · 응답대기 10초 · 재시도 3"]
-  q -->|WebSocket| be["팀 백엔드"]
+  q -->|WebSocket| be["${ic('java',26)}<br/>팀 백엔드"]
   w -.->|케이블 감지 · 미인증| ctl["전력 차단 명령<br/>P,포트,0"]
   ctl -.->|시리얼 역방향| s
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
@@ -322,28 +331,32 @@ const CONTENT = {
         cap: "연결 확립 후 Heartbeat로 유지하고, 케이블 연결→Started로 서버가 준 transactionId에 동기화, 주기 Updated 뒤 분리 시 Ended로 마무리합니다.",
         def: `sequenceDiagram
   autonumber
+  actor D as 운전자
   participant A as 아두이노
   participant R as 라즈베리파이
   participant B as 팀 백엔드
   Note over R,B: 연결 확립
-  R->>B: BootNotification
-  B-->>R: 승인
+  R->>+B: BootNotification
+  B-->>-R: 승인
   loop 60초 주기
     R->>B: Heartbeat
   end
-  Note over A,B: 충전 트랜잭션
-  A->>R: 전압 감지 · 케이블 연결
-  R->>B: TransactionEvent Started (CablePluggedIn)
-  B-->>R: transactionId 응답
+  Note over D,B: 충전 트랜잭션
+  D->>A: 케이블 연결
+  A->>R: 전압 감지
+  R->>+B: TransactionEvent Started (CablePluggedIn)
+  B-->>-R: transactionId 응답
   R->>R: transactionId 동기화
   R->>A: P,포트,1 · 전력 공급
   loop 충전 중
     A->>R: 전압 · 전류
-    R->>B: TransactionEvent Updated (MeterValues)
-    B-->>R: 수신완료
+    R->>+B: TransactionEvent Updated (MeterValues)
+    B-->>-R: 수신완료
   end
-  A->>R: 전력 0 · 분리
-  R->>B: TransactionEvent Ended (EVDisconnected)
+  D->>A: 케이블 분리
+  A->>R: 전력 0 감지
+  R->>+B: TransactionEvent Ended (EVDisconnected)
+  B-->>-R: 수신완료
   R->>A: P,포트,0 · 전력 차단` }
     ]
   },

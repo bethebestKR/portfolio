@@ -294,30 +294,49 @@ const CONTENT = {
     note: "제가 맡은 인증·실시간·인프라를 세 관점으로 그렸습니다. 파란 강조는 직접 구현·운영한 부분입니다.",
     tabs: [
       { key: "arch", label: "아키텍처",
-        cap: "Flutter 앱 → nginx → Spring Boot(EC2) → MySQL·S3. 배포는 GitHub Actions → DockerHub → EC2로 흐릅니다.",
+        cap: "Flutter 앱 → nginx → Spring Boot(EC2) → MySQL·S3. 배포는 GitHub Actions → DockerHub → EC2로 흐릅니다." + LEGEND,
         def: `flowchart LR
-  C["${ic('flutter',40)}<br/>Flutter 앱<br/>iOS · Android"] -->|HTTPS · WSS| N
-  subgraph EC2["${ic('awsEC2',28)} AWS EC2 · t3.small"]
-    N["${ic('nginx',44)}<br/>nginx<br/>리버스 프록시 · SSL"] --> A["${ic('spring',40)}<br/>Spring Boot<br/>REST · STOMP"]
-    A --> DB[("${ic('mysql',38)}<br/>MySQL<br/>db-dev · db-prod")]
+  subgraph EXT["외부"]
+    direction TB
+    C["${ic('flutter',38)}<br/><b>Flutter 앱</b><br/>iOS · Android"]
+    O["${ic('google',28)} ${ic('naver',26)}<br/><b>OAuth</b><br/>Google · Naver"]
   end
-  A -->|key · URL| S3[("${ic('awsS3',42)}<br/>AWS S3<br/>업로드 이미지")]
-  A -. OAuth2 .-> O["${ic('google',32)} ${ic('naver',28)}<br/>Google · Naver"]
-  R["${ic('awsRoute53',42)}<br/>Route 53 · DNS"] -.-> N
-  GH["${ic('githubactions',38)}<br/>GitHub Actions"] -->|이미지 push| DH["${ic('docker',40)}<br/>DockerHub"] -->|pull · 배포| EC2
+  subgraph EC2["${ic('awsEC2',24)} AWS EC2 · t3.small"]
+    direction TB
+    subgraph RT["요청 · 실시간"]
+      direction LR
+      N["${ic('nginx',40)}<br/><b>nginx</b><br/>리버스 프록시 · SSL"] --> A["${ic('spring',36)}<br/><b>Spring Boot</b><br/>REST · STOMP"]
+    end
+    A --> DB[("${ic('mysql',34)}<br/><b>MySQL</b><br/>db-dev · db-prod")]
+  end
+  subgraph CICD["배포 · CI/CD"]
+    direction LR
+    GH["${ic('githubactions',34)}<br/><b>GitHub Actions</b>"] -->|push| DH["${ic('docker',36)}<br/><b>DockerHub</b>"]
+  end
+  R["${ic('awsRoute53',38)}<br/><b>Route 53</b><br/>DNS"]
+  S3[("${ic('awsS3',40)}<br/><b>AWS S3</b><br/>업로드 이미지")]
+  C -->|HTTPS · WSS| N
+  R -. DNS .-> N
+  A -->|key · URL| S3
+  A -. OAuth2 .-> O
+  DH -->|pull · 배포| EC2
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
-  class N,A,DB me` },
+  class N,A,DB me
+  style EXT fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
+  style EC2 fill:#eef0f2,stroke:#d2d2d7,color:#6a6a70
+  style RT fill:#ffffff,stroke:#e0e0e0,color:#6a6a70
+  style CICD fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "flow", label: "데이터플로우",
         cap: "요청은 nginx·JWT 필터를 거쳐 계층을 통과하고, 이미지는 S3에 저장한 뒤 key·URL만 DB에 남깁니다.",
         def: `flowchart TB
-  req["클라이언트 요청"] --> ng["nginx<br/>TLS 종료 · 프록시"]
+  req["${ic('flutter',26)}<br/>클라이언트 요청"] --> ng["${ic('nginx',30)}<br/>nginx<br/>TLS 종료 · 프록시"]
   ng --> jwt{"JWT 필터<br/>토큰 검증"}
   jwt -->|유효| ctrl["Controller"]
   jwt -->|무효| rej["401 반환"]
   ctrl --> svc["Service"]
   svc --> jpa["JPA · Repository"]
-  jpa --> db[("MySQL")]
-  svc -->|이미지 업로드| s3[("S3")]
+  jpa --> db[("${ic('mysql',30)}<br/>MySQL")]
+  svc -->|이미지 업로드| s3[("${ic('awsS3',32)}<br/>S3")]
   s3 -->|key · URL 저장| db
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
   class jwt,s3 me` },
@@ -325,20 +344,25 @@ const CONTENT = {
         cap: "소셜 로그인으로 Access·Refresh를 발급하고, Refresh만 서버에 저장해 재발급 시 대조·회수할 수 있게 했습니다.",
         def: `sequenceDiagram
   autonumber
+  actor U as 사용자
   participant C as Flutter 앱
   participant S as Spring 서버
   participant O as OAuth Provider
   participant D as MySQL
-  C->>O: 소셜 로그인 요청
-  O-->>S: 인가 코드 · 프로필
-  S->>S: 사용자 조회 · 가입
-  S->>D: Refresh 토큰 저장
-  S-->>C: Access + Refresh 발급
-  Note over C,S: 액세스 만료 시
-  C->>S: Refresh로 재발급 요청
-  S->>D: 저장된 토큰과 대조
-  D-->>S: 일치 확인
-  S-->>C: 새 Access 토큰` }
+  U->>C: 소셜 로그인 선택
+  C->>+O: 인가 요청 (Google/Naver)
+  O-->>-C: 인가 코드
+  C->>+S: 인가 코드 전달
+  S->>+O: 토큰 · 프로필 요청
+  O-->>-S: 액세스 토큰 · 프로필
+  S->>+D: 사용자 조회 · 가입, Refresh 저장
+  D-->>-S: 저장 완료
+  S-->>-C: Access + Refresh 발급
+  Note over C,S: 액세스 만료 시 재발급
+  C->>+S: Refresh로 재발급 요청
+  S->>+D: 저장된 토큰과 대조
+  D-->>-S: 일치 확인
+  S-->>-C: 새 Access 토큰` }
     ]
   },
 

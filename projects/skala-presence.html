@@ -294,21 +294,28 @@ const CONTENT = {
     note: "제가 맡은 수집(scan/sync)·데이터 품질을 세 관점으로 그렸습니다. 파란 강조는 직접 구현·대응한 부분입니다.",
     tabs: [
       { key: "arch", label: "아키텍처",
-        cap: "수집 에이전트가 사내망을 arp-scan으로 훑어 로컬 SQLite에 쌓고, 증분만 Cloudflare D1로 보냅니다. 매칭·집계는 팀원 서비스 몫입니다.",
+        cap: "수집 에이전트가 사내망을 arp-scan으로 훑어 로컬 SQLite에 쌓고, 증분만 Cloudflare D1로 보냅니다. 매칭·집계는 팀원 서비스 몫입니다." + LEGEND,
         def: `flowchart LR
   subgraph LAN["사내망 (L2)"]
-    PC["직원 PC · 유선/유닛"]
+    PC["<b>직원 PC</b><br/>유선 · 유닛"]
   end
-  subgraph AG["${ic('apple',26)} 수집 에이전트 (macOS · launchd)"]
-    SC["arp-scan<br/>능동 ARP 스캔"] --> QC["${ic('python',38)}<br/>이상치·패턴 분류<br/>arp_pattern.py"]
-    QC --> LDB[("${ic('sqlite',40)}<br/>SQLite<br/>local.db")]
-    LDB --> SY["증분 sync<br/>REST"]
+  subgraph AG["${ic('apple',24)} 수집 에이전트 · macOS launchd"]
+    direction TB
+    SC["<b>arp-scan</b><br/>능동 ARP 스캔"] --> QC["${ic('python',34)}<br/><b>이상치·패턴 분류</b><br/>arp_pattern.py"]
+    QC --> LDB[("${ic('sqlite',36)}<br/><b>SQLite</b><br/>local.db")]
+    LDB --> SY["<b>증분 sync</b><br/>REST"]
+  end
+  subgraph CF["Cloudflare"]
+    D1[("${ic('cloudflare',40)}<br/><b>D1</b><br/>append-only")]
   end
   PC -. ARP 응답 .-> SC
-  SY -->|append-only mac_status| D1[("${ic('cloudflare',42)}<br/>Cloudflare D1")]
-  D1 --> MT["팀원: MAC↔사원 매칭 · 집계"]
+  SY -->|mac_status| D1
+  D1 --> MT["<b>팀원 서비스</b><br/>MAC↔사원 매칭 · 집계"]
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
-  class SC,QC,LDB,SY me` },
+  class SC,QC,LDB,SY me
+  style LAN fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70
+  style AG fill:#eef0f2,stroke:#d2d2d7,color:#6a6a70
+  style CF fill:#f5f5f7,stroke:#d2d2d7,color:#6a6a70` },
       { key: "flow", label: "데이터플로우",
         cap: "1분 주기로 ARP 응답을 모아 이상치(슬립 랩탑의 ARP offload)를 걸러내고, Realtek OUI만 '유선 PC'로 세어 증분만 D1에 upsert합니다.",
         def: `flowchart TB
@@ -319,28 +326,31 @@ const CONTENT = {
   oui -->|예| offload{"야간·주말 상시 ON — ARP offload?"}
   offload -->|이상치| tag["방치성으로 분류"]
   offload -->|정상| keep["실사용 신호"]
-  tag --> ldb[("SQLite local.db")]
+  tag --> ldb[("${ic('sqlite',30)}<br/>SQLite local.db")]
   keep --> ldb
-  ldb -->|measured_at 커서 증분| d1[("Cloudflare D1")]
+  ldb -->|measured_at 커서 증분| d1[("${ic('cloudflare',32)}<br/>Cloudflare D1")]
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
   class oui,offload,ldb me` },
       { key: "seq", label: "시퀀스 · 수집 사이클",
         cap: "한 번의 수집 사이클: 스캔 → 응답 수집 → 이상치 제거 → 로컬 저장 → 증분 커서로 D1 전송. 캐시가 아니라 매번 능동 스캔이라 STALE이 섞이지 않습니다.",
         def: `sequenceDiagram
   autonumber
-  participant T as launchd (1분)
+  participant T as launchd · 1분
   participant A as 수집 에이전트
   participant N as 사내망 (ARP)
   participant L as SQLite local.db
   participant D as Cloudflare D1
   T->>A: 주기 실행 트리거
-  A->>N: arp-scan 능동 스캔
-  N-->>A: 응답 IP · MAC (현재 켜진 기기)
+  activate A
+  A->>+N: arp-scan 능동 스캔
+  N-->>-A: 응답 IP · MAC (켜진 기기)
   A->>A: Realtek OUI 필터 · 이상치 분류
-  A->>L: is_on=1 행 기록 (append-only)
+  A->>+L: is_on=1 행 기록 (append-only)
+  L-->>-A: 저장 완료
   Note over A,D: 전체 재조회 대신 증분만
-  A->>D: measured_at 커서 이후만 sync
-  D-->>A: upsert 완료` }
+  A->>+D: measured_at 커서 이후만 sync
+  D-->>-A: upsert 완료
+  deactivate A` }
     ]
   },
 
