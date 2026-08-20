@@ -30,11 +30,16 @@ function initMermaid(){
         noteBkgColor: "#eef4fb", noteBorderColor: "#c9dcf3", noteTextColor: "#0b3d75"
       }
     });
-    // ELK 첫 렌더가 간헐적으로 불안정해서(초기화 직후) 실제 다이어그램과 유사한 구조로
-    // 워밍업 렌더를 여러 번 돌려 흡수한다(subgraph + 결정노드 + 교차 엣지).
+    // ELK는 초기화 직후 첫 렌더가 불안정하다(예외/에러 SVG). 실제 다이어그램과 유사한 구조로
+    // 워밍업 렌더를 "성공할 때까지" 돌려서, 이후 실제 렌더는 항상 데워진 ELK에서 돌게 한다.
     if (window.__elkOK) {
       const warm = "flowchart TB\n subgraph G1[a]\n direction TB\n n1[x] --> n2{y}\n end\n subgraph G2[b]\n n3[(z)]\n end\n n2 -->|e| n3\n n2 -->|f| n1";
-      for (let i = 0; i < 3; i++) { try { await mermaid.render("dg_warm" + i, warm); } catch (e) {} }
+      let warmOK = false;
+      for (let i = 0; i < 10 && !warmOK; i++) {
+        try { const { svg } = await mermaid.render("dg_warm" + i, warm); warmOK = !svg.includes('aria-roledescription="error"'); }
+        catch (e) { /* 재시도 */ }
+        if (!warmOK) await new Promise((r) => setTimeout(r, 150));
+      }
     }
     return true;
   })();
