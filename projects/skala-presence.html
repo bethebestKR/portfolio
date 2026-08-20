@@ -269,6 +269,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script src="logos.js"></script>
+<script src="diagrams.js"></script>
 <script>
 /* ============================================================
    SKALA 재실 측정 수집 에이전트 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
@@ -332,7 +333,7 @@ const CONTENT = {
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
   class oui,offload,ldb me` },
       { key: "seq", label: "시퀀스 · 수집 사이클",
-        cap: "한 번의 수집 사이클: 스캔 → 응답 수집 → 이상치 제거 → 로컬 저장 → 증분 커서로 D1 전송. 캐시가 아니라 매번 능동 스캔이라 STALE이 섞이지 않습니다.",
+        cap: "한 번의 수집 사이클: 스캔 → 응답 수집 → 이상치 제거 → 로컬 저장 → 증분 커서로 D1 전송. 캐시가 아니라 매번 능동 스캔이라 STALE이 섞이지 않습니다." + SEQ_LEGEND,
         def: `sequenceDiagram
   autonumber
   participant T as launchd · 1분
@@ -524,45 +525,7 @@ const CONTENT = {
    ============================================================ */
 const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/* Mermaid — 사이트 디자인(블루 액센트·파치먼트)으로 테마링, 탭 전환 시 지연 렌더 */
-let _mReady = false;
-function initMermaid(){
-  if (_mReady || !window.mermaid) return _mReady;
-  mermaid.initialize({
-    startOnLoad: false, securityLevel: "loose", theme: "base",
-    flowchart: { curve: "basis", padding: 14, useMaxWidth: true },
-    sequence: { useMaxWidth: true, mirrorActors: false },
-    themeVariables: {
-      fontFamily: "-apple-system, system-ui, Inter, sans-serif", fontSize: "14px",
-      primaryColor: "#f5f5f7", primaryTextColor: "#1d1d1f", primaryBorderColor: "#c9c9cf",
-      lineColor: "#8a8a8f", secondaryColor: "#eef4fb", tertiaryColor: "#ffffff",
-      clusterBkg: "#fafafa", clusterBorder: "#e0e0e0",
-      actorBkg: "#f5f5f7", actorBorder: "#c9c9cf", actorTextColor: "#1d1d1f", actorLineColor: "#c9c9cf",
-      signalColor: "#6a6a70", signalTextColor: "#1d1d1f",
-      noteBkgColor: "#eef4fb", noteBorderColor: "#c9dcf3", noteTextColor: "#0b3d75"
-    }
-  });
-  _mReady = true;
-  return true;
-}
-function renderMermaid(el){
-  if (!window.mermaid){ setTimeout(() => renderMermaid(el), 60); return; }
-  initMermaid();
-  try { mermaid.run({ nodes: [el] }); } catch (e) { console.error("mermaid", e); }
-}
-function setupDiagrams(){
-  const tabs = [...document.querySelectorAll(".dg-tab")];
-  const panels = [...document.querySelectorAll(".dg-panel")];
-  function show(key){
-    tabs.forEach(t => t.classList.toggle("active", t.dataset.key === key));
-    panels.forEach(p => p.classList.toggle("active", p.dataset.key === key));
-    const panel = panels.find(p => p.dataset.key === key);
-    const pre = panel && panel.querySelector(".mermaid");
-    if (pre && !pre.getAttribute("data-processed")) renderMermaid(pre);
-  }
-  tabs.forEach(t => t.addEventListener("click", () => show(t.dataset.key)));
-  if (tabs.length) show(tabs[0].dataset.key);
-}
+/* Mermaid 렌더러(initMermaid/renderMermaid/setupDiagrams)는 diagrams.js 공용 */
 
 function render(){
   document.getElementById("footNote").textContent = "사내 인프라라 저장소는 비공개입니다.";
