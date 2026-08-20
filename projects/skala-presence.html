@@ -268,6 +268,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="logos.js"></script>
 <script>
 /* ============================================================
    SKALA 재실 측정 수집 에이전트 상세페이지 — 내용은 이 CONTENT 객체만 수정하세요.
@@ -298,13 +299,13 @@ const CONTENT = {
   subgraph LAN["사내망 (L2)"]
     PC["직원 PC · 유선/유닛"]
   end
-  subgraph AG["수집 에이전트 (macOS · launchd)"]
-    SC["arp-scan<br/>능동 ARP 스캔"] --> QC["이상치·패턴 분류<br/>arp_pattern.py"]
-    QC --> LDB[("SQLite<br/>local.db")]
+  subgraph AG["${ic('apple',26)} 수집 에이전트 (macOS · launchd)"]
+    SC["arp-scan<br/>능동 ARP 스캔"] --> QC["${ic('python',38)}<br/>이상치·패턴 분류<br/>arp_pattern.py"]
+    QC --> LDB[("${ic('sqlite',40)}<br/>SQLite<br/>local.db")]
     LDB --> SY["증분 sync<br/>REST"]
   end
   PC -. ARP 응답 .-> SC
-  SY -->|append-only mac_status| D1[("Cloudflare D1")]
+  SY -->|append-only mac_status| D1[("${ic('cloudflare',42)}<br/>Cloudflare D1")]
   D1 --> MT["팀원: MAC↔사원 매칭 · 집계"]
   classDef me fill:#e9f2fc,stroke:#0066cc,color:#0b3d91,stroke-width:1.5px;
   class SC,QC,LDB,SY me` },
